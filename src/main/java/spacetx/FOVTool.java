@@ -1,0 +1,201 @@
+package spacetx;
+
+import loci.common.LogbackTools;
+import loci.formats.FormatException;
+import loci.formats.ImageReader;
+import loci.formats.ImageWriter;
+import loci.formats.MetadataTools;
+import loci.formats.in.DynamicMetadataOptions;
+import loci.formats.meta.MetadataStore;
+import loci.formats.tools.ImageConverter;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+
+/**
+ * Main entry point for SpaceTx FOV generation.
+ */
+public class FOVTool {
+
+    /**
+     * Set to desired logging level
+     */
+    private final static String LOGLEVEL = System.getProperty("spacetx.FOVTool.loglevel", "warn");
+
+    //
+    // PRIMARY ARGUMENTS
+    //
+
+    /**
+     * Represents the field-of-view in the <b>output fileset</b>
+     * regardless of the number of series in the input fileset.
+     */
+    @Option(name="-f",usage="field of view", metaVar="FOV")
+    private int fov = 0;
+
+    /**
+     * Non-extant directory which should be used to contain the
+     * SpaceTx output fileset.
+     */
+    @Option(name="-o",usage="create & output to this directory", metaVar="OUTPUT", required=true)
+    private File out = new File("out");
+
+    /**
+     * Path to the codebook which should be attached to the fileset.
+     * It will be copied into the output directory. If no codebook is
+     * provide, then the name "codebook.json" will be used.
+     */
+    @Option(name="-c",usage="codebook to attach", metaVar="CODEBOOK")
+    private File codebook = new File("codebook.json");
+
+    //
+    // BIO-FORMATS INTERNALS
+    //
+
+    /**
+     * Represents the field-of-view in the <b>output fileset</b>
+     * regardless of the number of series in the input fileset.
+     */
+    @Option(name="-s",usage="series offset of image", metaVar="SERIES")
+    private int series = -1;
+
+    /**
+     * Primary input file to Bio-Formats. Related files will be auto-detected.
+     *
+     * See https://docs.openmicroscopy.org/latest/bioformats/formats/dataset-table.html
+     * for more information.
+     */
+    @Argument(required=true, metaVar="INPUT", usage="main input file for Bio-Formats")
+    private String input = null;
+
+    public static void main(String[] args) throws Exception {
+        System.exit(new FOVTool().doMain(args));
+    }
+
+    public int doMain(String[] args) throws IOException, FormatException {
+        CmdLineParser parser = new CmdLineParser(this);
+        parser.getProperties().withUsageWidth(80);
+
+        try {
+            parser.parseArgument(args);
+            if (!new File(input).exists()) {
+                throw new UsageException(1, String.format(
+                        "input does not exist (%s)", input
+                ));
+            }
+            if (out.exists()) {
+                throw new UsageException(3, String.format(
+                        "output folder already exists! (%s)", out));
+            } else {
+                out.mkdirs();
+            }
+            if (fov < 0) {
+                throw new UsageException(5, String.format(
+                        "FOV must be a greater than or equal to 0 (%d)", fov
+                ));
+            }
+            return convert();
+        } catch (CmdLineException e) {
+            System.err.println(e.getMessage());
+            System.err.println("java spacetx.FOVTool [options...] arguments...");
+            parser.printUsage(System.err);
+            System.err.println();
+            if (e instanceof UsageException) {
+                return ((UsageException) e).rc;
+            }
+            return 2;
+        }
+
+    }
+
+    /**
+     * Reads the input file into an {@link ImageReader} in order to have all necessary metadata,
+     * then uses {@link ImageConverter} to produce the TIFF stacks, and finally uses {@link FOVWriter}
+     * to produce the necessary JSON.
+     *
+     * @return non-zero return code if anything went wrnog
+     * @throws IOException
+     * @throws FormatException
+     * @throws UsageException
+     */
+    public int convert() throws IOException, FormatException, UsageException {
+
+        LogbackTools.setRootLevel(LOGLEVEL);
+
+        // First use the generic reader object to load the metadata
+        DynamicMetadataOptions options = new DynamicMetadataOptions();
+        options.setValidate(true);
+        ImageReader reader = new ImageReader();
+        reader.setMetadataOptions(options);
+        reader.setGroupFiles(true);
+        reader.setMetadataFiltered(true);
+        reader.setOriginalMetadataPopulated(true);
+        reader.setId(input);
+        MetadataStore store = reader.getMetadataStore();
+        MetadataTools.populatePixels(store, reader, false, false);
+
+        int seriesCount = reader.getSeriesCount();
+        if (seriesCount > 1) {
+            if (series < 0) {
+                // User didn't choose a series
+                throw new UsageException(4,
+                        String.format("%s contains multiple images (count=%d). Please choose one.",
+                                input, reader.getSeriesCount())
+                );
+            } else {
+                reader.setSeries(series);
+            }
+        }
+
+        String base = String.format("%s/hybridization-fov%03d", out, fov);
+        ImageConverter converter = createConverter();
+
+        String[] cmd = new String[]{
+                "-option", "ometiff.companion", base + ".companion.ome",
+                "-validate", input, base + "_Z%z_T%t_C%c.ome.tiff"
+        };
+        if (!converter.testConvert(new ImageWriter(), cmd)) {
+            System.out.println("Conversion failed!");
+            return 1;
+        }
+
+        // Now write out the spacetx json
+        FOVWriter writer = new FOVWriter(reader, fov, out);
+        writer.write();
+        return 0;
+    }
+
+    /*
+     * Deals with the fact that the ImageConverter constructor is package-private.
+     */
+    private static ImageConverter createConverter() {
+        // TODO: this should be pushed upstream
+        try {
+            Constructor<ImageConverter> c = ImageConverter.class.getDeclaredConstructor();
+            c.setAccessible(true);
+            return c.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Something's weird in Java land", e);
+        }
+    }
+
+    /*
+     * Allows passing a return code for CLI failures.
+     */
+    private static class UsageException extends CmdLineException {
+
+        final int rc;
+
+        UsageException(int rc, String message) {
+            super(message);
+            this.rc = rc;
+        }
+    }
+}

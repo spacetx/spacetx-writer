@@ -1,0 +1,98 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'spacetx.FOVTool'
+
+group = "spacetx"
+version = "0.0.1-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven {
+        name 'Unidata'
+        url 'https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases'
+    }
+    maven {
+        url 'https://artifacts.openmicroscopy.org/artifactory/maven/'
+    }
+}
+
+dependencies {
+    compile(group: 'ome', name: 'formats-api', version: '5.9.1'){}
+    compile(group: 'ome', name: 'formats-bsd', version: '5.9.1'){}
+    compile(group: 'ome', name: 'formats-gpl', version: '5.9.1'){}
+    compile(group: 'ome', name: 'bio-formats-tools', version: '5.9.1'){}
+    compile(group: 'args4j', name: 'args4j', version: '2.33'){}
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.6'
+
+    // https://github.com/junit-team/junit5-samples/blob/master/junit5-migration-gradle/build.gradle
+    def junit4Version        = '4.12'
+    def junitVintageVersion  = '5.2.0'
+    def junitJupiterVersion  = '5.2.0'
+    def junitPlatformVersion = '1.2.0'
+    testCompile("org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}")
+    testCompile("junit:junit:${junit4Version}")
+    testRuntime("org.junit.vintage:junit-vintage-engine:${junitVintageVersion}")
+    testRuntime("org.junit.platform:junit-platform-launcher:${junitPlatformVersion}")
+
+    // https://stackoverflow.com/questions/45462987/junit5-with-intellij-and-gradle
+    testImplementation "org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion"
+
+}
+
+test {
+    useJUnitPlatform {
+            includeEngines 'junit-jupiter', 'junit-vintage'
+    }
+    testLogging {
+        events 'PASSED', 'FAILED', 'SKIPPED'
+        exceptionFormat 'FULL'
+        showStandardStreams = true
+        showStackTraces = true
+        showExceptions = true
+        showCauses = true
+        lifecycle.exceptionFormat 'FULL'
+    }
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            println "\nTest result: ${result.resultType}"
+            println "Test summary: ${result.testCount} tests, " +
+                    "${result.successfulTestCount} succeeded, " +
+                    "${result.failedTestCount} failed, " +
+                    "${result.skippedTestCount} skipped"
+        }
+    }
+}
+
+// https://gist.github.com/matthiasbalke/3c9ecccbea1d460ee4c3fbc5843ede4a
+task deps {
+    doLast {
+        project.rootProject.allprojects.each { subProject ->
+            subProject.buildscript.configurations.each { configuration ->
+                resolveConfiguration(configuration)
+            }
+            subProject.configurations.each { configuration ->
+                resolveConfiguration(configuration)
+            }
+        }
+    }
+}
+
+void resolveConfiguration(configuration) {
+    if (isResolveableConfiguration(configuration)) {
+        configuration.resolve()
+    }
+}
+
+boolean isResolveableConfiguration(configuration) {
+    def nonResolveableConfigurations = ['apiElements', 'implementation',
+                                        'runtimeElements', 'runtimeOnly',
+                                        'testImplementation', 'testRuntimeOnly',
+                                        'generatedImplementation', 'generatedRuntimeOnly']
+
+    if (nonResolveableConfigurations.contains(configuration.getName())) {
+        return false
+    }
+    return true
+}
