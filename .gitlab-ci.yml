@@ -1,0 +1,22 @@
+# Official docker image.
+image: docker:latest
+
+services:
+  - docker:dind
+
+before_script:
+  - docker info
+
+build-master:
+  stage: build
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE" .
+  only:
+    - master
+
+build:
+  stage: build
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+  except:
+    - master
