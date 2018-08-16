@@ -76,7 +76,14 @@ public class FOVWriter {
             for (int t = 0; t < sizeT; t++) {
                 for (int z = 0; z < sizeZ; z++) {
                     ObjectNode tile = mapper.createObjectNode();
-                    // TODO: coordinates
+                    ObjectNode coords = mapper.createObjectNode();
+                    for (String idx : new String[] {"x", "y", "z"}) {
+                        ArrayNode coord = mapper.createArrayNode();
+                        coord.add(0.0);
+                        coord.add(0.0001);
+                        coords.set(idx, coord);
+                    }
+                    tile.set("coordinates", coords);
                     String file = naming.getTiffFilename(fov, z, t, c);
                     tile.put("file", file);
                     ObjectNode indices = mapper.createObjectNode();
