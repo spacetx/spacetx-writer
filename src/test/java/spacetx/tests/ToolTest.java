@@ -25,7 +25,7 @@ public class ToolTest {
      * Set to false during development in order to leave directories under $TMPDIR
      */
     private final static boolean cleanup = Boolean.valueOf(
-            System.getProperty("spacetx.tests.ToolTest.cleanup", "false"));
+            System.getProperty("spacetx.tests.ToolTest.cleanup", "true"));
 
     /**
      * Simple testing input that is created by touching a file with an appropriately constructed name.
