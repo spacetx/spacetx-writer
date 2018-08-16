@@ -100,10 +100,20 @@ public class FOVWriter {
             }
         }
         hyb.set("tiles", tiles);
-        hyb.put("version", "0.0.0");
+        hyb.put("version", "1.0.0");
         String name = String.format("%s/%s", out, naming.getJsonFilename(fov));
         ObjectWriter writer = mapper.writer(printer);
         writer.writeValue(new File(name), hyb);
+
+        ObjectNode exp = mapper.createObjectNode();
+        exp.put("version", "1.0.0");
+        exp.set("auxiliary_images", mapper.createObjectNode());
+        exp.set("extras", mapper.createObjectNode());
+        exp.put("hybridization_images", naming.getJsonFilename(fov));
+        exp.put("codebook", "codebook.json");
+        writer = mapper.writer(printer);
+        writer.writeValue(new File(String.format("%s/experiment.json", out)), hyb);
+
     }
 
 }
