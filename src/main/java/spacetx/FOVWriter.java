@@ -61,6 +61,9 @@ public class FOVWriter {
         dims.add("r");
         dims.add("y");
         hyb.set("dimensions", dims);
+        // "extras"
+        ObjectNode extras = mapper.createObjectNode();
+        extras.put("OME", naming.getCompanionFilename(fov));
         // "shape"
         ObjectNode shape = mapper.createObjectNode();
         shape.put("c", sizeC);
