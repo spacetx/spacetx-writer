@@ -55,6 +55,14 @@ public class FOVTool {
     @Option(name="-c",usage="codebook to attach", metaVar="CODEBOOK")
     private File codebook = new File("codebook.json");
 
+    /**
+     * Naming strategies for generating the names of files on disk.
+     *
+     * Currently only "standard" is supported.
+     */
+    @Option(name="-n",usage="naming strategy ('standard')", metaVar="NAMING")
+    private Naming naming = Naming.standard;
+
     //
     // BIO-FORMATS INTERNALS
     //
@@ -154,12 +162,13 @@ public class FOVTool {
             }
         }
 
-        String base = String.format("%s/hybridization-fov%03d", out, fov);
+        String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
+        String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
         ImageConverter converter = createConverter();
 
         String[] cmd = new String[]{
-                "-option", "ometiff.companion", base + ".companion.ome",
-                "-validate", input, base + "_Z%z_T%t_C%c.ome.tiff"
+                "-option", "ometiff.companion", companion,
+                "-validate", input, tiffs
         };
         if (!converter.testConvert(new ImageWriter(), cmd)) {
             System.out.println("Conversion failed!");
@@ -167,7 +176,7 @@ public class FOVTool {
         }
 
         // Now write out the spacetx json
-        FOVWriter writer = new FOVWriter(reader, fov, out);
+        FOVWriter writer = new FOVWriter(reader, naming, fov, out);
         writer.write();
         return 0;
     }

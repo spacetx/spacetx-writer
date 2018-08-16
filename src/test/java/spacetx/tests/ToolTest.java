@@ -113,7 +113,7 @@ public class ToolTest {
     public void test5DImage() {
         fake = fake("sizeZ", "5", "sizeT", "4", "sizeC", "3");
         assertTool(0);
-        Assertions.assertEquals(1, matches("fov000_Z4_T3_C2.ome.tiff", dir));
+        Assertions.assertEquals(1, matches("fov_000_Z4_T3_C2.ome.tiff", dir));
 
     }
 
@@ -127,7 +127,7 @@ public class ToolTest {
     public void testNonDefaultFOV() {
         fake = fake();
         assertTool(0, "-f", "001");
-        Assertions.assertEquals(1, matches("fov001_Z0_T0_C0.ome.tiff", dir));
+        Assertions.assertEquals(1, matches("fov_001_Z0_T0_C0.ome.tiff", dir));
     }
 
     /**

@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Produces the hybridization-fov.json file for a SpaceTx experiment.
+ * Produces the FOV json file for a SpaceTx experiment.
  *
  * Size attributes are taken from the {@link ImageReader} and filename
  * assumptions are made based on values in {@link FOVTool}.
@@ -24,11 +24,13 @@ public class FOVWriter {
 
     private final int sizeX, sizeY, sizeC, sizeT, sizeZ;
     private final int fov;
+    private final Naming naming;
     private final File out;
 
-    public FOVWriter(ImageReader reader, int fov, File out) {
+    public FOVWriter(ImageReader reader, Naming naming, int fov, File out) {
         this.fov = fov;
         this.out = out;
+        this.naming = naming;
         this.sizeX = reader.getSizeX();
         this.sizeY = reader.getSizeY();
         this.sizeC = reader.getSizeC(); // TODO: getEffectiveSizeC?
@@ -72,7 +74,7 @@ public class FOVWriter {
                 for (int z = 0; z < sizeZ; z++) {
                     ObjectNode tile = mapper.createObjectNode();
                     // TODO: coordinates
-                    String file = String.format("hybridization-fov%03d_Z%d_T%d_C%d.ome.tiff", fov, z, t, c);
+                    String file = naming.getTiffFilename(fov, z, t, c);
                     tile.put("file", file);
                     ObjectNode indices = mapper.createObjectNode();
                     indices.put("c", c);
@@ -89,7 +91,7 @@ public class FOVWriter {
         }
         hyb.set("tiles", tiles);
         hyb.put("version", "0.0.0");
-        String name = String.format("%s/hybridization-fov%03d.json", out, fov);
+        String name = String.format("%s/%s", out, naming.getJsonFilename(fov));
         ObjectWriter writer = mapper.writer(printer);
         writer.writeValue(new File(name), hyb);
     }
