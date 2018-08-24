@@ -13,6 +13,7 @@ import loci.formats.ImageReader;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 
 /**
  * Produces the FOV json file for a SpaceTx experiment.
@@ -55,15 +56,16 @@ public class FOVWriter {
         hyb.set("default_tile_shape", plane);
         // "dimensions"
         ArrayNode dims = mapper.createArrayNode();
+        dims.add("r");
         dims.add("x");
+        dims.add("y");
         dims.add("c");
         dims.add("z");
-        dims.add("r");
-        dims.add("y");
         hyb.set("dimensions", dims);
         // "extras"
         ObjectNode extras = mapper.createObjectNode();
         extras.put("OME", naming.getCompanionFilename(fov));
+        hyb.set("extras", extras);
         // "shape"
         ObjectNode shape = mapper.createObjectNode();
         shape.put("c", sizeC);
@@ -72,15 +74,15 @@ public class FOVWriter {
         hyb.set("shape", shape);
         // tiles
         ArrayNode tiles = mapper.createArrayNode();
-        for (int c = 0; c < sizeC; c++) {
+        for (int z = 0; z < sizeZ; z++) {
             for (int t = 0; t < sizeT; t++) {
-                for (int z = 0; z < sizeZ; z++) {
+                for (int c = 0; c < sizeC; c++) {
                     ObjectNode tile = mapper.createObjectNode();
                     ObjectNode coords = mapper.createObjectNode();
                     for (String idx : new String[] {"x", "y", "z"}) {
                         ArrayNode coord = mapper.createArrayNode();
                         coord.add(0.0);
-                        coord.add(0.0001);
+                        coord.add(new BigDecimal(.0001).setScale(4, BigDecimal.ROUND_HALF_UP));
                         coords.set(idx, coord);
                     }
                     tile.set("coordinates", coords);
@@ -112,7 +114,7 @@ public class FOVWriter {
         exp.put("hybridization_images", naming.getJsonFilename(fov));
         exp.put("codebook", "codebook.json");
         writer = mapper.writer(printer);
-        writer.writeValue(new File(String.format("%s/experiment.json", out)), hyb);
+        writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
 
     }
 
