@@ -2,6 +2,7 @@ package spacetx;
 
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.core.util.Separators;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -41,9 +42,15 @@ public class FOVWriter {
 
     public void write() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        //mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        DefaultPrettyPrinter printer = new DefaultPrettyPrinter();
-        DefaultIndenter indenter = new DefaultIndenter();
+        DefaultPrettyPrinter printer = new DefaultPrettyPrinter() {
+            @Override
+            public DefaultPrettyPrinter withSeparators(Separators separators) {
+                super.withSeparators(separators);
+                this._objectFieldValueSeparatorWithSpaces = ": ";
+                return this;
+            }
+        };
+        DefaultIndenter indenter = new DefaultIndenter("    ", DefaultIndenter.SYS_LF);
         printer.indentArraysWith(indenter);
         printer.indentObjectsWith(indenter);
 
