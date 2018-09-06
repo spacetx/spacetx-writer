@@ -43,7 +43,7 @@ FROM ${RUN_IMAGE} as run
 COPY --from=build /opt/spacetx-fov-writer/build/distributions/*.tar /tmp
 
 USER root
-RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-fov-writer-0.0.2.tar \
+RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-fov-writer-0.0.3-SNAPSHOT.tar \
  &&  rm /tmp/spacetx-fov-writer*tar
 
 RUN useradd -ms /bin/bash sptx
