@@ -54,8 +54,8 @@ public class FOVWriter {
         printer.indentArraysWith(indenter);
         printer.indentObjectsWith(indenter);
 
-        ObjectNode hyb = mapper.createObjectNode();
-        hyb.put("default_tile_format", "TIFF");
+        ObjectNode primary = mapper.createObjectNode();
+        primary.put("default_tile_format", "TIFF");
         // "default_tile_shape" (will be used below)
         ArrayNode plane = mapper.createArrayNode();
         plane.add(sizeX);
@@ -70,17 +70,17 @@ public class FOVWriter {
         dims.add("xc");
         dims.add("yc");
         dims.add("zc");
-        hyb.set("dimensions", dims);
+        primary.set("dimensions", dims);
         // "extras"
         ObjectNode extras = mapper.createObjectNode();
         extras.put("OME", naming.getCompanionFilename(fov));
-        hyb.set("extras", extras);
+        primary.set("extras", extras);
         // "shape"
         ObjectNode shape = mapper.createObjectNode();
         shape.put("c", sizeC);
         shape.put("r", sizeT);
         shape.put("z", sizeZ);
-        hyb.set("shape", shape);
+        primary.set("shape", shape);
         // tiles
         ArrayNode tiles = mapper.createArrayNode();
         for (int z = 0; z < sizeZ; z++) {
@@ -110,11 +110,11 @@ public class FOVWriter {
                 }
             }
         }
-        hyb.set("tiles", tiles);
-        hyb.put("version", "1.0.0");
+        primary.set("tiles", tiles);
+        primary.put("version", "1.0.0");
         String name = String.format("%s/%s", out, naming.getJsonFilename(fov));
         ObjectWriter writer = mapper.writer(printer);
-        writer.writeValue(new File(name), hyb);
+        writer.writeValue(new File(name), primary);
 
         ObjectNode exp = mapper.createObjectNode();
         exp.put("version", "4.0.0");

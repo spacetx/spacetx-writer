@@ -5,7 +5,7 @@ package spacetx;
  */
 public enum Naming {
 
-    standard("hybridization-fov");
+    standard("primary_image-fov");
 
     private final String root;
 
