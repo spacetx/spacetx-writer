@@ -13,12 +13,20 @@ public enum Naming {
         this.root = root;
     }
 
+    public String getFOV(int fov) {
+        return String.format("fov_%03d", fov);
+    }
+
     public String getTiffPattern(int fov) {
         return String.format("%s_%03d_Z%%z_T%%t_C%%c.ome.tiff", root, fov);
     }
 
     public String getTiffFilename(int fov, int z, int t, int c) {
         return String.format("%s_%03d_Z%d_T%d_C%d.ome.tiff", root, fov, z, t, c);
+    }
+
+    public String getManifestFilename() {
+        return String.format("%s.json", root);
     }
 
     public String getJsonFilename(int fov) {
