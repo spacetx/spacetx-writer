@@ -56,11 +56,10 @@ public class FOVWriter {
 
         ObjectNode hyb = mapper.createObjectNode();
         hyb.put("default_tile_format", "TIFF");
-        // "default_tile_shape"
+        // "default_tile_shape" (will be used below)
         ArrayNode plane = mapper.createArrayNode();
         plane.add(sizeX);
         plane.add(sizeY);
-        hyb.set("default_tile_shape", plane);
         // "dimensions"
         ArrayNode dims = mapper.createArrayNode();
         dims.add("r");
@@ -68,6 +67,9 @@ public class FOVWriter {
         dims.add("y");
         dims.add("c");
         dims.add("z");
+        dims.add("xc");
+        dims.add("yc");
+        dims.add("zc");
         hyb.set("dimensions", dims);
         // "extras"
         ObjectNode extras = mapper.createObjectNode();
@@ -86,7 +88,7 @@ public class FOVWriter {
                 for (int c = 0; c < sizeC; c++) {
                     ObjectNode tile = mapper.createObjectNode();
                     ObjectNode coords = mapper.createObjectNode();
-                    for (String idx : new String[] {"x", "y", "z"}) {
+                    for (String idx : new String[] {"xc", "yc", "zc"}) {
                         ArrayNode coord = mapper.createArrayNode();
                         coord.add(0.0);
                         coord.add(new BigDecimal(.0001).setScale(4, BigDecimal.ROUND_HALF_UP));
