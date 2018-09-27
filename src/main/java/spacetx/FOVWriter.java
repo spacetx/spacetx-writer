@@ -123,6 +123,19 @@ public class FOVWriter {
         writer = mapper.writer(printer);
         writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
 
+        ArrayNode book = mapper.createArrayNode();
+        ObjectNode code = mapper.createObjectNode();
+        ArrayNode words = mapper.createArrayNode();
+        ObjectNode word = mapper.createObjectNode();
+        word.put("r", 0);
+        word.put("c", 0);
+        word.put("v", 1);
+        words.add(word);
+        code.put("codeword", words);
+        code.put("target", "PLEASE_REPLACE_ME");
+        book.add(code);
+        writer = mapper.writer(printer);
+        writer.writeValue(new File(String.format("%s/codebook.json", out)), book);
     }
 
 }
