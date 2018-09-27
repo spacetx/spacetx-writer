@@ -115,7 +115,7 @@ public class FOVWriter {
         writer.writeValue(new File(name), hyb);
 
         ObjectNode exp = mapper.createObjectNode();
-        exp.put("version", "2.0.0");
+        exp.put("version", "4.0.0");
         exp.set("auxiliary_images", mapper.createObjectNode());
         exp.set("extras", mapper.createObjectNode());
         exp.put("primary_images", naming.getJsonFilename(fov));
