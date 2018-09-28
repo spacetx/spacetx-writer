@@ -1,14 +1,27 @@
-FAKE ?= image&sizeC=3&sizeT=5&sizeZ=4.fake
+FAKE ?= image&sizeX=16&sizeY=16&sizeC=2&sizeT=3&sizeZ=4.fake
 
-travis: docker $(FAKE) test
+IMAGE ?= spacetx-fov-writer
+
+SPACETX ?= spacetx/starfish:latest
+
+DIR ?= /tmp/test
+
+all: docker $(FAKE) test verify
 
 docker:
-	docker build -t sptx .
+	docker build -t $(IMAGE) .
 
-$(FAKE):
-	touch "$(FAKE)"
+$(DIR):
+	mkdir -m 777 -p $(DIR)
+
+$(FAKE): $(DIR)
+	touch "$(DIR)/$(FAKE)"
 
 test: $(FAKE)
-	time docker run -t --rm -v /tmp:/tmp -v $(PWD):/src:ro sptx -o /tmp/out "/src/$(FAKE)"
+	time docker run -t --rm -v $(DIR):/test $(IMAGE) -o /test/out "/test/$(FAKE)"
 
-.PHONE: travis docker test
+verify:
+	docker pull $(SPACETX)
+	docker run --rm -v $(DIR):/test $(SPACETX) validate --experiment-json /test/out/experiment.json
+
+.PHONY: all travis docker test verify

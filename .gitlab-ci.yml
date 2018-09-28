@@ -19,7 +19,9 @@ before_script:
 build:
   stage: build
   script:
+    - apt-get install -y make
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
+    - make IMAGE=${CONTAINER_TEST_IMAGE} all
     - docker push $CONTAINER_TEST_IMAGE
 
 release-image:
