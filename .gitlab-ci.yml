@@ -19,7 +19,7 @@ before_script:
 build:
   stage: build
   script:
-    - yum install -y make
+    - apk add --update make
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
     - make IMAGE=${CONTAINER_TEST_IMAGE} all
     - docker push $CONTAINER_TEST_IMAGE
