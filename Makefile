@@ -18,10 +18,10 @@ $(FAKE): $(DIR)
 	touch "$(DIR)/$(FAKE)"
 
 test: $(FAKE)
-	time docker run -t --rm -v $(DIR):/test $(IMAGE) -o /test/out "/test/$(FAKE)"
+	time docker run -t --rm -v $(DIR):$(DIR) $(IMAGE) -o $(DIR)/out "$(DIR)/$(FAKE)"
 
 verify:
 	docker pull $(SPACETX)
-	docker run --rm -v $(DIR):/test $(SPACETX) validate --experiment-json /test/out/experiment.json
+	docker run --rm -v $(DIR):$(DIR) $(SPACETX) validate --experiment-json $(DIR)/out/experiment.json
 
 .PHONY: all travis docker test verify
