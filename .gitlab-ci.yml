@@ -21,7 +21,7 @@ build:
   script:
     - apk add --update make
     - docker build --pull -t $CONTAINER_TEST_IMAGE .
-    - make IMAGE=${CONTAINER_TEST_IMAGE} all
+    - make DIR="$(dirname ${CI_PROJECT_DIR})/shared" IMAGE=${CONTAINER_TEST_IMAGE} all
     - docker push $CONTAINER_TEST_IMAGE
 
 release-image:
