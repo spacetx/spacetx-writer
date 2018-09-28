@@ -1,4 +1,4 @@
-FAKE ?= image&sizeX=16&sizeY=16&sizeC=2&sizeT=3&sizeZ=4.fake
+FAKE ?= primary_image&sizeX=16&sizeY=16&sizeC=2&sizeT=3&sizeZ=4.fake
 
 IMAGE ?= spacetx-fov-writer
 
