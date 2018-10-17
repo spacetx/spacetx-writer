@@ -126,11 +126,14 @@ public class FOVWriter {
         writer.writeValue(new File(
             String.format("%s/%s", out, naming.getManifestFilename())), manifest);
 
+        ObjectNode images = mapper.createObjectNode();
+        images.put("primary", naming.getManifestFilename());
+
         ObjectNode exp = mapper.createObjectNode();
-        exp.put("version", "4.0.0");
+        exp.put("version", "5.0.0");
         exp.set("auxiliary_images", mapper.createObjectNode());
         exp.set("extras", mapper.createObjectNode());
-        exp.put("primary_images", naming.getManifestFilename());
+        exp.put("images", images);
         exp.put("codebook", "codebook.json");
         writer = mapper.writer(printer);
         writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
