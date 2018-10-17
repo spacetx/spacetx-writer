@@ -131,7 +131,6 @@ public class FOVWriter {
 
         ObjectNode exp = mapper.createObjectNode();
         exp.put("version", "5.0.0");
-        exp.set("auxiliary_images", mapper.createObjectNode());
         exp.set("extras", mapper.createObjectNode());
         exp.put("images", images);
         exp.put("codebook", "codebook.json");
