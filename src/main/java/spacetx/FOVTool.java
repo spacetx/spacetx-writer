@@ -1,12 +1,17 @@
 package spacetx;
 
 import loci.common.LogbackTools;
+import loci.common.services.DependencyException;
+import loci.common.services.ServiceException;
+import loci.common.services.ServiceFactory;
 import loci.formats.FormatException;
 import loci.formats.ImageReader;
 import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.in.DynamicMetadataOptions;
 import loci.formats.meta.MetadataStore;
+import loci.formats.ome.OMEXMLMetadata;
+import loci.formats.services.OMEXMLService;
 import loci.formats.tools.ImageConverter;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -140,14 +145,40 @@ public class FOVTool {
         // First use the generic reader object to load the metadata
         DynamicMetadataOptions options = new DynamicMetadataOptions();
         options.setValidate(true);
+        OMEXMLMetadata meta = null;
+        try {
+            OMEXMLService xml = new ServiceFactory().getInstance(OMEXMLService.class);
+            meta = xml.createOMEXMLMetadata();
+        } catch (ServiceException | DependencyException exc) {
+            throw new FormatException("Error creating metadata service");
+        }
         ImageReader reader = new ImageReader();
         reader.setMetadataOptions(options);
         reader.setGroupFiles(true);
         reader.setMetadataFiltered(true);
         reader.setOriginalMetadataPopulated(true);
+        reader.setMetadataStore(meta);
         reader.setId(input);
         MetadataStore store = reader.getMetadataStore();
         MetadataTools.populatePixels(store, reader, false, false);
+        int plateCount = meta.getPlateCount();
+
+        if (plateCount > 0) {
+            // We assume that a HCS dataset it more structured, having the same
+            // coordinate system for all the wells, therefore we can remove some
+            // of the restrictions around choosing FOV.
+            if (plateCount > 1) {
+                // however, to allow fov to choose the _well_, we abort if there
+                // are more than one plate.
+                throw new UsageException(6, String.format(
+                        "Too many plates found (count=%d)", plateCount));
+            }
+            int wellCount = meta.getWellCount(0);
+            if (wellCount != 1) {
+                throw new UsageException(7, String.format(
+                        "Too many wells found (count=%d)", wellCount));
+            }
+        }
 
         int seriesCount = reader.getSeriesCount();
         if (seriesCount > 1) {

@@ -130,6 +130,25 @@ public class ToolTest {
         Assertions.assertEquals(1, matches("fov_001_Z0_T0_C0.ome.tiff", dir));
     }
 
+    @Test
+    public void testHCSFailsOnTooManyPlates() {
+        fake = fake("plates", "2");
+        assertTool(6);
+    }
+
+    @Test
+    public void testHCSFailsOnTooManyWells() {
+        fake = fake("plates", "1", "plateRows", "2");
+        assertTool(7);
+    }
+
+    @Test
+    public void testHCSAllFieldsOfOneWell() {
+        fake = fake("plates", "1");
+        assertTool(0);
+        Assertions.assertEquals(1, matches("fov_001_Z0_T0_C0.ome.tiff", dir));
+    }
+
     /**
      * Delete the created resources under $TMPDIR unless cleanup was set to false.
      */
