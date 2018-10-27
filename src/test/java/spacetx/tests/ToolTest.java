@@ -144,9 +144,11 @@ public class ToolTest {
 
     @Test
     public void testHCSAllFieldsOfOneWell() {
-        fake = fake("plates", "1");
+        fake = fake("plates", "1", "fields", "2");
         assertTool(0);
+        Assertions.assertEquals(1, matches("fov_000_Z0_T0_C0.ome.tiff", dir));
         Assertions.assertEquals(1, matches("fov_001_Z0_T0_C0.ome.tiff", dir));
+
     }
 
     /**

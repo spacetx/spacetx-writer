@@ -161,7 +161,9 @@ public class FOVTool {
         reader.setId(input);
         MetadataStore store = reader.getMetadataStore();
         MetadataTools.populatePixels(store, reader, false, false);
-        int plateCount = meta.getPlateCount();
+        final int plateCount = meta.getPlateCount();
+        final int seriesCount = reader.getSeriesCount();
+
 
         if (plateCount > 0) {
             // We assume that a HCS dataset it more structured, having the same
@@ -178,21 +180,29 @@ public class FOVTool {
                 throw new UsageException(7, String.format(
                         "Too many wells found (count=%d)", wellCount));
             }
-        }
-
-        int seriesCount = reader.getSeriesCount();
-        if (seriesCount > 1) {
-            if (series < 0) {
-                // User didn't choose a series
-                throw new UsageException(4,
-                        String.format("%s contains multiple images (count=%d). Please choose one.",
-                                input, reader.getSeriesCount())
-                );
-            } else {
-                reader.setSeries(series);
+            int rv = 0;
+            for (int i = 0; i < seriesCount; i++) {
+                reader.setSeries(i);
+                rv |= convertOne(reader, i);
             }
+            return rv;
+        } else {
+            if (seriesCount > 1) {
+                if (series < 0) {
+                    // User didn't choose a series
+                    throw new UsageException(4,
+                            String.format("%s contains multiple images (count=%d). Please choose one.",
+                                    input, reader.getSeriesCount())
+                    );
+                } else {
+                    reader.setSeries(series);
+                }
+            }
+            return convertOne(reader, fov);
         }
+    }
 
+    private int convertOne(ImageReader reader, int fov) throws FormatException, IOException {
         String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
         ImageConverter converter = createConverter();
