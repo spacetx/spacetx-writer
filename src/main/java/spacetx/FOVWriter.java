@@ -11,7 +11,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import loci.formats.FormatTools;
 import loci.formats.ImageReader;
+import loci.formats.ome.OMEXMLMetadata;
+import ome.units.UNITS;
+import ome.units.quantity.Length;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,12 +29,16 @@ import java.math.BigDecimal;
  */
 public class FOVWriter {
 
+    private final ImageReader reader;
+    private final OMEXMLMetadata meta;
     private final int sizeX, sizeY, sizeC, sizeT, sizeZ;
     private final int fov;
     private final Naming naming;
     private final File out;
 
-    public FOVWriter(ImageReader reader, Naming naming, int fov, File out) {
+    public FOVWriter(ImageReader reader, OMEXMLMetadata meta, Naming naming, int fov, File out) {
+        this.reader = reader;
+        this.meta = meta;
         this.fov = fov;
         this.out = out;
         this.naming = naming;
@@ -82,8 +90,12 @@ public class FOVWriter {
                     ObjectNode coords = mapper.createObjectNode();
                     for (String idx : new String[]{"xc", "yc", "zc"}) {
                         ArrayNode coord = mapper.createArrayNode();
-                        coord.add(0.0);
-                        coord.add(new BigDecimal(.0001).setScale(4, BigDecimal.ROUND_HALF_UP));
+                        Double value = getPosition(idx, z, c, t);
+                        if (value != null) {
+                            coord.add(value);
+                        } else {
+                            coord.add(new BigDecimal(0.0).setScale(4, BigDecimal.ROUND_HALF_UP));
+                        }
                         coords.set(idx, coord);
                     }
                     tile.set("coordinates", coords);
@@ -107,4 +119,31 @@ public class FOVWriter {
         String name = String.format("%s/%s", out, naming.getJsonFilename(fov));
         writer.writeValue(new File(name), primary);
     }
+
+    /**
+     * Return the given position in micrometers.
+     */
+    private Double getPosition(String idx, int z, int c, int t) {
+        Length length;
+        int imageIndex = reader.getSeries();
+        int planeIndex = FormatTools.getIndex(reader, z, c, t);
+        switch (idx) {
+            case "xc":
+                length = meta.getPlanePositionX(imageIndex, planeIndex);
+                break;
+            case "yc":
+                length = meta.getPlanePositionY(imageIndex, planeIndex);
+                break;
+            case "zc":
+                length = meta.getPlanePositionZ(imageIndex, planeIndex);
+                break;
+            default:
+                throw new RuntimeException("unknown: " + idx);
+        }
+        if (length == null) {
+            return null;
+        }
+        return length.value(UNITS.MICROMETER).doubleValue();
+    }
+
 }

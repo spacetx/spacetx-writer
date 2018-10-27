@@ -183,7 +183,7 @@ public class FOVTool {
             }
             for (int i = 0; i < seriesCount; i++) {
                 reader.setSeries(i);
-                int rv = convertOne(reader, writer, i);
+                int rv = convertOne(reader, meta, writer, i);
                 if (rv != 0) {
                     return rv;
                 }
@@ -202,13 +202,13 @@ public class FOVTool {
                     reader.setSeries(series);
                 }
             }
-            int rv = convertOne(reader, writer, fov);
+            int rv = convertOne(reader, meta, writer, fov);
             writer.write();
             return rv;
         }
     }
 
-    private int convertOne(ImageReader reader, ExperimentWriter eWriter, int fov)
+    private int convertOne(ImageReader reader, OMEXMLMetadata meta, ExperimentWriter eWriter, int fov)
             throws FormatException, IOException {
         String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
@@ -224,7 +224,7 @@ public class FOVTool {
         }
 
         // Now write out the spacetx json
-        FOVWriter writer = new FOVWriter(reader, naming, fov, out);
+        FOVWriter writer = new FOVWriter(reader, meta, naming, fov, out);
         writer.write();
         eWriter.addFOV(fov);
         return 0;
