@@ -1,5 +1,11 @@
 package spacetx;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.core.util.Separators;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * Enumeration of strategies for how files should be named on disk.
  */
@@ -37,4 +43,18 @@ public enum Naming {
         return String.format("%s_%03d.companion.ome", root, fov);
     }
 
+    public PrettyPrinter createPrinter() {
+        DefaultPrettyPrinter printer = new DefaultPrettyPrinter() {
+            @Override
+            public DefaultPrettyPrinter withSeparators(Separators separators) {
+                super.withSeparators(separators);
+                this._objectFieldValueSeparatorWithSpaces = ": ";
+                return this;
+            }
+        };
+        DefaultIndenter indenter = new DefaultIndenter("    ", DefaultIndenter.SYS_LF);
+        printer.indentArraysWith(indenter);
+        printer.indentObjectsWith(indenter);
+        return printer;
+    }
 }

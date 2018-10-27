@@ -1,5 +1,6 @@
 package spacetx;
 
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.core.util.Separators;
@@ -42,17 +43,8 @@ public class FOVWriter {
 
     public void write() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        DefaultPrettyPrinter printer = new DefaultPrettyPrinter() {
-            @Override
-            public DefaultPrettyPrinter withSeparators(Separators separators) {
-                super.withSeparators(separators);
-                this._objectFieldValueSeparatorWithSpaces = ": ";
-                return this;
-            }
-        };
-        DefaultIndenter indenter = new DefaultIndenter("    ", DefaultIndenter.SYS_LF);
-        printer.indentArraysWith(indenter);
-        printer.indentObjectsWith(indenter);
+        PrettyPrinter printer = naming.createPrinter();
+        ObjectWriter writer = mapper.writer(printer);
 
         ObjectNode primary = mapper.createObjectNode();
         primary.put("default_tile_format", "TIFF");
@@ -88,7 +80,7 @@ public class FOVWriter {
                 for (int c = 0; c < sizeC; c++) {
                     ObjectNode tile = mapper.createObjectNode();
                     ObjectNode coords = mapper.createObjectNode();
-                    for (String idx : new String[] {"xc", "yc", "zc"}) {
+                    for (String idx : new String[]{"xc", "yc", "zc"}) {
                         ArrayNode coord = mapper.createArrayNode();
                         coord.add(0.0);
                         coord.add(new BigDecimal(.0001).setScale(4, BigDecimal.ROUND_HALF_UP));
@@ -113,46 +105,6 @@ public class FOVWriter {
         primary.set("tiles", tiles);
         primary.put("version", "1.0.0");
         String name = String.format("%s/%s", out, naming.getJsonFilename(fov));
-        ObjectWriter writer = mapper.writer(printer);
         writer.writeValue(new File(name), primary);
-
-        ObjectNode manifest = mapper.createObjectNode();
-        ObjectNode contents = mapper.createObjectNode();
-        contents.put(naming.getFOV(fov), naming.getJsonFilename(fov));
-        manifest.put("contents", contents);
-        manifest.put("extras", (ObjectNode) null);
-        manifest.put("version", "0.0.0");
-        writer = mapper.writer(printer);
-        writer.writeValue(new File(
-            String.format("%s/%s", out, naming.getManifestFilename())), manifest);
-
-        ObjectNode images = mapper.createObjectNode();
-        images.put("primary", naming.getManifestFilename());
-
-        ObjectNode exp = mapper.createObjectNode();
-        exp.put("version", "5.0.0");
-        exp.set("extras", mapper.createObjectNode());
-        exp.put("images", images);
-        exp.put("codebook", "codebook.json");
-        writer = mapper.writer(printer);
-        writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
-
-        ObjectNode book = mapper.createObjectNode();
-        ArrayNode mappings = mapper.createArrayNode();
-        ObjectNode code = mapper.createObjectNode();
-        ArrayNode words = mapper.createArrayNode();
-        ObjectNode word = mapper.createObjectNode();
-        word.put("r", 0);
-        word.put("c", 0);
-        word.put("v", 1);
-        words.add(word);
-        code.put("codeword", words);
-        code.put("target", "PLEASE_REPLACE_ME");
-        mappings.add(code);
-        book.put("version", "0.0.0");
-        book.put("mappings", mappings);
-        writer = mapper.writer(printer);
-        writer.writeValue(new File(String.format("%s/codebook.json", out)), book);
     }
-
 }

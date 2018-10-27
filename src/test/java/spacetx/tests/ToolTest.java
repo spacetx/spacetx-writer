@@ -148,7 +148,9 @@ public class ToolTest {
         assertTool(0);
         Assertions.assertEquals(1, matches("fov_000_Z0_T0_C0.ome.tiff", dir));
         Assertions.assertEquals(1, matches("fov_001_Z0_T0_C0.ome.tiff", dir));
-
+        Assertions.assertEquals(1, matches("codebook.json", dir));
+        Assertions.assertEquals(1, matches("experiment.json", dir));
+        Assertions.assertEquals(1, matches("primary_image-fov.json", dir));
     }
 
     /**

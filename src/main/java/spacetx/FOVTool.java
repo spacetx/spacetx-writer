@@ -161,9 +161,10 @@ public class FOVTool {
         reader.setId(input);
         MetadataStore store = reader.getMetadataStore();
         MetadataTools.populatePixels(store, reader, false, false);
+
         final int plateCount = meta.getPlateCount();
         final int seriesCount = reader.getSeriesCount();
-
+        final ExperimentWriter writer = new ExperimentWriter(naming, out);
 
         if (plateCount > 0) {
             // We assume that a HCS dataset it more structured, having the same
@@ -180,12 +181,15 @@ public class FOVTool {
                 throw new UsageException(7, String.format(
                         "Too many wells found (count=%d)", wellCount));
             }
-            int rv = 0;
             for (int i = 0; i < seriesCount; i++) {
                 reader.setSeries(i);
-                rv |= convertOne(reader, i);
+                int rv = convertOne(reader, writer, i);
+                if (rv != 0) {
+                    return rv;
+                }
             }
-            return rv;
+            writer.write();
+            return 0;
         } else {
             if (seriesCount > 1) {
                 if (series < 0) {
@@ -198,11 +202,14 @@ public class FOVTool {
                     reader.setSeries(series);
                 }
             }
-            return convertOne(reader, fov);
+            int rv = convertOne(reader, writer, fov);
+            writer.write();
+            return rv;
         }
     }
 
-    private int convertOne(ImageReader reader, int fov) throws FormatException, IOException {
+    private int convertOne(ImageReader reader, ExperimentWriter eWriter, int fov)
+            throws FormatException, IOException {
         String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
         ImageConverter converter = createConverter();
@@ -219,6 +226,7 @@ public class FOVTool {
         // Now write out the spacetx json
         FOVWriter writer = new FOVWriter(reader, naming, fov, out);
         writer.write();
+        eWriter.addFOV(fov);
         return 0;
     }
 
