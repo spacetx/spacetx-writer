@@ -121,12 +121,17 @@ public class FOVWriter {
     }
 
     /**
-     * Return the given position in micrometers.
+     * Return the given position in micrometers or null if the value is not found
+     * or it is not convertible to micrometers.
      */
     private Double getPosition(String idx, int z, int c, int t) {
         Length length;
+
+        // Validate indexes
         int imageIndex = reader.getSeries();
         int planeIndex = FormatTools.getIndex(reader, z, c, t);
+
+        // Perform lookup
         switch (idx) {
             case "xc":
                 length = meta.getPlanePositionX(imageIndex, planeIndex);
@@ -140,10 +145,13 @@ public class FOVWriter {
             default:
                 throw new RuntimeException("unknown: " + idx);
         }
-        if (length == null) {
+
+        // Convert if possible
+        if (length == null || !length.unit().isConvertible(UNITS.MICROMETER)) {
             return null;
         }
         return length.value(UNITS.MICROMETER).doubleValue();
     }
+
 
 }

@@ -160,7 +160,8 @@ public class FOVTool {
         reader.setMetadataStore(meta);
         reader.setId(input);
         MetadataStore store = reader.getMetadataStore();
-        MetadataTools.populatePixels(store, reader, false, false);
+        // doPlane: true is critical for position information
+        MetadataTools.populatePixels(store, reader, true, false);
 
         final int plateCount = meta.getPlateCount();
         final int seriesCount = reader.getSeriesCount();
