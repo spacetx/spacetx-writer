@@ -1,6 +1,7 @@
 package spacetx.tests;
 
 
+import com.google.common.collect.ImmutableMap;
 import loci.common.LogbackTools;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -12,9 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import static spacetx.tests.Helpers.fake;
-import static spacetx.tests.Helpers.matches;
+import static spacetx.tests.Helpers.*;
 
 /**
  * Simulate use from the CLI. Bad arguments should have a non-zero return code.
@@ -151,6 +152,23 @@ public class ToolTest {
         Assertions.assertEquals(1, matches("codebook.json", dir));
         Assertions.assertEquals(1, matches("experiment.json", dir));
         Assertions.assertEquals(1, matches("primary_image-fov.json", dir));
+    }
+
+    @Test
+    public void testHCSPositionOfField() throws Exception {
+        fake = fake(
+                ImmutableMap.<String, String>builder().put("plate", "1").build(),
+                ImmutableMap.<Integer, Map<String, String>>builder().put(0,
+                    ImmutableMap.<String, String>builder()
+                            .put("PositionX_0", "444")
+                            .put("PositionY_0", "555").build()).build());
+        assertTool(0);
+
+        // Now check for the position values
+        Assertions.assertEquals(1,
+                grep("primary_image-fov_000.companion.ome", "PositionX=\"444.0\"", dir));
+        Assertions.assertEquals(1,
+                grep("primary_image-fov_000.json", "444", dir));
     }
 
     /**
