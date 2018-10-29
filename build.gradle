@@ -6,6 +6,10 @@ mainClassName = 'spacetx.FOVTool'
 group = "spacetx"
 version = "0.0.4-SNAPSHOT"
 
+ext {
+    bfversion = "6.0.0-SNAPSHOT"
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -18,10 +22,10 @@ repositories {
 }
 
 dependencies {
-    compile(group: 'ome', name: 'formats-api', version: '5.9.1'){}
-    compile(group: 'ome', name: 'formats-bsd', version: '5.9.1'){}
-    compile(group: 'ome', name: 'formats-gpl', version: '5.9.1'){}
-    compile(group: 'ome', name: 'bio-formats-tools', version: '5.9.1'){}
+    compile(group: 'ome', name: 'formats-api', version: bfversion){}
+    compile(group: 'ome', name: 'formats-bsd', version: bfversion){}
+    compile(group: 'ome', name: 'formats-gpl', version: bfversion){}
+    compile(group: 'ome', name: 'bio-formats-tools', version: bfversion){}
     compile(group: 'args4j', name: 'args4j', version: '2.33'){}
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.6'
 

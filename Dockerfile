@@ -23,6 +23,16 @@ FROM ${BUILD_IMAGE} as build
 USER root
 RUN useradd -ms /bin/bash build
 COPY build.gradle /opt/spacetx-fov-writer/build.gradle
+## Temporarily build bio-formats
+COPY run_mvn.sh /tmp/run_mvn.sh
+RUN apt-get update -y && apt-get install -y maven git python-sphinx locales
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
+ENV LANG en_US.UTF-8 
+USER build
+RUN bash /tmp/run_mvn.sh
+### End temp build for bio-formats
 RUN chown -R build /opt/spacetx-fov-writer
 
 # Pre-load all the jars which significantly speeds up developmnet
