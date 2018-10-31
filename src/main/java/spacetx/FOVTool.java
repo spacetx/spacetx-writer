@@ -217,10 +217,13 @@ public class FOVTool {
                 "-option", "ometiff.companion", companion,
                 "-validate", input, tiffs
         };
-        if (!converter.testConvert(imageWriter(), cmd)) {
-            System.out.println("Conversion failed!");
-            return 1;
+        try (FormatWriter writer = imageWriter()) {
+            if (!converter.testConvert(writer, cmd)) {
+                System.out.println("Conversion failed!");
+                return 1;
+            }
         }
+
 
         // Now write out the spacetx json
         FOVWriter writer = new FOVWriter(reader, meta, naming, fov, out);
