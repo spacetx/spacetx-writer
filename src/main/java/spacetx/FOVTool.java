@@ -20,6 +20,7 @@ import org.kohsuke.args4j.Option;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.Date;
 
 
 /**
@@ -301,8 +302,8 @@ public class FOVTool {
                     long elapsed = stop - start;
                     tool.elapsed += elapsed;
                     System.out.println(String.format(
-                            "> write([%04d]) to %s: %8d bytes in %4d ms (Avg. %5.3f MB/s)",
-                            calls, currentId.substring(currentId.lastIndexOf(File.separatorChar)+1),
+                            "[%04d]\t%s\t%s\t%8d bytes\t%4d ms\t    Avg. %5.3f MB/s",
+                            calls, new Date(), currentId.substring(currentId.lastIndexOf(File.separatorChar)+1),
                             buf.length, elapsed, ((double) tool.bytes)/tool.elapsed/1000
                     ));
                 }
