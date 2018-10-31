@@ -52,10 +52,13 @@ public class ExperimentWriter {
             String.format("%s/%s", out, naming.getManifestFilename())), manifest);
 
         ObjectNode exp = mapper.createObjectNode();
-        exp.put("version", "4.0.0");
+        ObjectNode images = mapper.createObjectNode();
+        exp.put("version", "5.0.0");
         exp.set("extras", mapper.createObjectNode());
-        exp.put("primary_images", naming.getManifestFilename());
+        exp.set("images", images);
         exp.put("codebook", "codebook.json");
+        images.put("primary", naming.getManifestFilename());
+
         writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
 
         ArrayNode book = mapper.createArrayNode();
