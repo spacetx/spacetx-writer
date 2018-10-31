@@ -214,6 +214,7 @@ public class FOVTool {
         ImageConverter converter = createConverter();
 
         String[] cmd = new String[]{
+                "-series", String.valueOf(reader.getSeries()),
                 "-option", "ometiff.companion", companion,
                 "-validate", input, tiffs
         };
