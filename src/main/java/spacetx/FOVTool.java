@@ -86,6 +86,25 @@ public class FOVTool {
     @Argument(required=true, metaVar="INPUT", usage="main input file for Bio-Formats")
     private String input = null;
 
+    //
+    // STATISTICS
+    //
+
+    /**
+     * Number of calls to write TIFFs
+     */
+    int calls = 0;
+
+    /**
+     * Number of bytes written to TIFFs
+     */
+    long bytes = 0;
+
+    /**
+     * Total time spent writing TIFFs
+     */
+    long elapsed = 0;
+
     public static void main(String[] args) throws Exception {
         System.exit(new FOVTool().doMain(args));
     }
@@ -266,28 +285,25 @@ public class FOVTool {
      *
      * @return instance to be used by the {@link ImageConverter}. Never null.
      */
-    private static FormatWriter imageWriter() {
+    private FormatWriter imageWriter() {
+        final FOVTool tool = this;
         return new OMETiffWriter() {
-
-            int calls = 0;
-            long bytes = 0;
-            long elapsed = 0;
 
             public void saveBytes(int no, byte[] buf, IFD ifd, int x, int y, int w, int h)
                     throws IOException, FormatException {
-                this.calls++;
-                this.bytes += buf.length;
+                tool.calls++;
+                tool.bytes += buf.length;
                 long start = System.currentTimeMillis();
                 try {
                     super.saveBytes(no, buf, ifd, x, y, w, h);
                 } finally {
                     long stop = System.currentTimeMillis();
                     long elapsed = stop - start;
-                    this.elapsed += elapsed;
+                    tool.elapsed += elapsed;
                     System.out.println(String.format(
                             "> write([%04d]) to %s: %8d bytes in %4d ms (Avg. %5.3f MB/s)",
                             calls, currentId.substring(currentId.lastIndexOf(File.separatorChar)+1),
-                            buf.length, elapsed, ((double) this.bytes)/this.elapsed/1000
+                            buf.length, elapsed, ((double) tool.bytes)/tool.elapsed/1000
                     ));
                 }
             }
