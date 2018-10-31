@@ -32,6 +32,7 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 ENV LANG en_US.UTF-8 
 USER build
 RUN bash /tmp/run_mvn.sh
+USER root
 ### End temp build for bio-formats
 RUN chown -R build /opt/spacetx-fov-writer
 
