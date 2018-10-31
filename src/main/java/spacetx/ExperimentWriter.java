@@ -61,7 +61,8 @@ public class ExperimentWriter {
 
         writer.writeValue(new File(String.format("%s/experiment.json", out)), exp);
 
-        ArrayNode book = mapper.createArrayNode();
+        ObjectNode book = mapper.createObjectNode();
+        ArrayNode mappings = mapper.createArrayNode();
         ObjectNode code = mapper.createObjectNode();
         ArrayNode words = mapper.createArrayNode();
         ObjectNode word = mapper.createObjectNode();
@@ -71,7 +72,10 @@ public class ExperimentWriter {
         words.add(word);
         code.put("codeword", words);
         code.put("target", "PLEASE_REPLACE_ME");
-        book.add(code);
+        mappings.add(code);
+        book.put("version", "0.0.0");
+        book.put("mappings", mappings);
+        writer = mapper.writer(printer);
         writer.writeValue(new File(String.format("%s/codebook.json", out)), book);
     }
 
