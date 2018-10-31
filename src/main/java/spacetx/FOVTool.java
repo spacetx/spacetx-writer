@@ -20,7 +20,6 @@ import org.kohsuke.args4j.Option;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 
 
 /**
@@ -282,9 +281,9 @@ public class FOVTool {
                     long elapsed = stop - start;
                     this.elapsed += elapsed;
                     System.out.println(String.format(
-                            "> write([%04d]) to %s: %6d bytes in %4d ms (Avg. %5.3f kb./s)",
+                            "> write([%04d]) to %s: %8d bytes in %4d ms (Avg. %5.3f MB/s)",
                             calls, currentId.substring(currentId.lastIndexOf(File.separatorChar)+1),
-                            buf.length, elapsed, bytes/1000.0/this.elapsed
+                            buf.length, elapsed, ((double) this.bytes)/this.elapsed/1000
                     ));
                 }
             }
