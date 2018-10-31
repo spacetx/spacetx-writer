@@ -4,14 +4,13 @@ import loci.common.LogbackTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
-import loci.formats.FormatException;
-import loci.formats.ImageReader;
-import loci.formats.ImageWriter;
-import loci.formats.MetadataTools;
+import loci.formats.*;
 import loci.formats.in.DynamicMetadataOptions;
 import loci.formats.meta.MetadataStore;
 import loci.formats.ome.OMEXMLMetadata;
+import loci.formats.out.OMETiffWriter;
 import loci.formats.services.OMEXMLService;
+import loci.formats.tiff.IFD;
 import loci.formats.tools.ImageConverter;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -219,7 +218,7 @@ public class FOVTool {
                 "-option", "ometiff.companion", companion,
                 "-validate", input, tiffs
         };
-        if (!converter.testConvert(new ImageWriter(), cmd)) {
+        if (!converter.testConvert(imageWriter(), cmd)) {
             System.out.println("Conversion failed!");
             return 1;
         }
@@ -256,5 +255,39 @@ public class FOVTool {
             super(message);
             this.rc = rc;
         }
+    }
+
+    /**
+     * Create a {@link FormatWriter} instance which will output status updates
+     * as TIFFs are saved.
+     *
+     * @return instance to be used by the {@link ImageConverter}. Never null.
+     */
+    private static FormatWriter imageWriter() {
+        return new OMETiffWriter() {
+
+            int calls = 0;
+            long bytes = 0;
+            long elapsed = 0;
+
+            public void saveBytes(int no, byte[] buf, IFD ifd, int x, int y, int w, int h)
+                    throws IOException, FormatException {
+                this.calls++;
+                this.bytes += buf.length;
+                long start = System.currentTimeMillis();
+                try {
+                    super.saveBytes(no, buf, ifd, x, y, w, h);
+                } finally {
+                    long stop = System.currentTimeMillis();
+                    long elapsed = stop - start;
+                    this.elapsed += elapsed;
+                    System.out.println(String.format(
+                            "> write([%04d]) to %s: %6d bytes in %4d ms (Avg. %5.3f kb./s)",
+                            calls, currentId.substring(currentId.lastIndexOf(File.separatorChar)+1),
+                            buf.length, elapsed, bytes/1000.0/this.elapsed
+                    ));
+                }
+            }
+        };
     }
 }
