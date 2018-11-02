@@ -15,6 +15,6 @@ pushd bio-formats-build
 export LANG=en_US.UTF-8 
 
 git submodule update --init
-mvn clean install -DskipSphinxTests
+mvn clean install -DskipSphinxTests -DskipTests
 cd bioformats
 ant tools

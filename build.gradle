@@ -11,6 +11,7 @@ ext {
 }
 
 repositories {
+    mavenLocal() // while building locally
     mavenCentral()
     maven {
         name 'Unidata'
