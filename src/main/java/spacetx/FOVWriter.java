@@ -89,14 +89,12 @@ public class FOVWriter {
                     ObjectNode tile = mapper.createObjectNode();
                     ObjectNode coords = mapper.createObjectNode();
                     for (String idx : new String[]{"xc", "yc", "zc"}) {
-                        ArrayNode coord = mapper.createArrayNode();
                         Double value = getPosition(idx, z, c, t);
                         if (value != null) {
-                            coord.add(value);
+                            coords.put(idx, value);
                         } else {
-                            coord.add(new BigDecimal(0.0).setScale(4, BigDecimal.ROUND_HALF_UP));
+                            coords.put(idx, new BigDecimal(0.0).setScale(4, BigDecimal.ROUND_HALF_UP));
                         }
-                        coords.set(idx, coord);
                     }
                     tile.set("coordinates", coords);
                     String file = naming.getTiffFilename(fov, z, t, c);
