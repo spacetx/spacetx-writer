@@ -89,12 +89,18 @@ public class FOVWriter {
                     ObjectNode tile = mapper.createObjectNode();
                     ObjectNode coords = mapper.createObjectNode();
                     for (String idx : new String[]{"xc", "yc", "zc"}) {
+                        ArrayNode coord = mapper.createArrayNode();
                         Double value = getPosition(idx, z, c, t);
+                        // TODO: duplication of value is due to https://github.com/spacetx/slicedimage/pull/75
                         if (value != null) {
-                            coords.put(idx, value);
+                            coord.add(value);
+                            coord.add(value);
                         } else {
-                            coords.put(idx, new BigDecimal(0.0).setScale(4, BigDecimal.ROUND_HALF_UP));
+                            BigDecimal dummy = new BigDecimal(0.0).setScale(4, BigDecimal.ROUND_HALF_UP);
+                            coord.add(dummy);
+                            coord.add(dummy);
                         }
+                        coords.set(idx, coord);
                     }
                     tile.set("coordinates", coords);
                     String file = naming.getTiffFilename(fov, z, t, c);

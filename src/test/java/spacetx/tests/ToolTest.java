@@ -175,8 +175,8 @@ public class ToolTest {
         // Now check for the position values
         Assertions.assertEquals(1,
                 grep("primary_image-fov_000.companion.ome", "PositionX=\"444.0\"", dir));
-        Assertions.assertEquals(1,
-                grep("primary_image-fov_000.json", "444", dir));
+        Assertions.assertTrue(
+                grep("primary_image-fov_000.json", "444", dir) >= 1);
     }
 
     /**
