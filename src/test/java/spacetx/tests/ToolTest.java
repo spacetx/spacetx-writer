@@ -119,6 +119,14 @@ public class ToolTest {
     }
 
     @Test
+    public void testNoTiffs() {
+        fake = fake();
+        assertTool(0, "--no-tiffs");
+        Assertions.assertEquals(0, matches("fov_000_Z4_T3_C2.ome.tiff", dir));
+        Assertions.assertEquals(1, matches("fov_000.json", dir));
+    }
+
+    @Test
     public void testNegativeFOV() {
         fake = fake();
         assertTool(5, "-f", "-1");

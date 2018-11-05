@@ -41,14 +41,14 @@ public class FOVTool {
      * Represents the field-of-view in the <b>output fileset</b>
      * regardless of the number of series in the input fileset.
      */
-    @Option(name="-f",usage="field of view", metaVar="FOV")
+    @Option(name="-f", usage="field of view", metaVar="FOV")
     private int fov = 0;
 
     /**
      * Non-extant directory which should be used to contain the
      * SpaceTx output fileset.
      */
-    @Option(name="-o",usage="create & output to this directory", metaVar="OUTPUT", required=true)
+    @Option(name="-o", usage="create & output to this directory", metaVar="OUTPUT", required=true)
     private File out = new File("out");
 
     /**
@@ -56,7 +56,7 @@ public class FOVTool {
      * It will be copied into the output directory. If no codebook is
      * provide, then the name "codebook.json" will be used.
      */
-    @Option(name="-c",usage="codebook to attach", metaVar="CODEBOOK")
+    @Option(name="-c", usage="codebook to attach", metaVar="CODEBOOK")
     private File codebook = new File("codebook.json");
 
     /**
@@ -64,8 +64,15 @@ public class FOVTool {
      *
      * Currently only "standard" is supported.
      */
-    @Option(name="-n",usage="naming strategy ('standard')", metaVar="NAMING")
+    @Option(name="-n", usage="naming strategy ('standard')", metaVar="NAMING")
     private Naming naming = Naming.standard;
+
+    /**
+     * Whether to skip generation of the OME-TIFFs and only produce the
+     * starfish json.
+     */
+    @Option(name="--no-tiffs", usage="skip generation of OME-TIFFs")
+    private boolean noTiffs = false;
 
     //
     // BIO-FORMATS INTERNALS
@@ -75,7 +82,7 @@ public class FOVTool {
      * Represents the field-of-view in the <b>output fileset</b>
      * regardless of the number of series in the input fileset.
      */
-    @Option(name="-s",usage="series offset of image", metaVar="SERIES")
+    @Option(name="-s", usage="series offset of image", metaVar="SERIES")
     private int series = -1;
 
     /**
@@ -238,10 +245,12 @@ public class FOVTool {
                 "-option", "ometiff.companion", companion,
                 "-validate", input, tiffs
         };
-        try (FormatWriter writer = imageWriter()) {
-            if (!converter.testConvert(writer, cmd)) {
-                System.out.println("Conversion failed!");
-                return 1;
+        if (!noTiffs) {
+            try (FormatWriter writer = imageWriter()) {
+                if (!converter.testConvert(writer, cmd)) {
+                    System.out.println("Conversion failed!");
+                    return 1;
+                }
             }
         }
 

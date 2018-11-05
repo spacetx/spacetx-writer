@@ -104,8 +104,13 @@ public class FOVWriter {
                     indices.put("r", t);
                     indices.put("z", z);
                     tile.set("indices", indices);
-                    HashCode hashCode = Files.hash(new File(out, file), Hashing.sha256());
-                    tile.put("sha256", hashCode.toString());
+                    File toHash = new File(out, file);
+                    String hashString = "does-not-exist";  // in case of --no-tiffs
+                    if (toHash.exists()) {
+                        HashCode hashCode = Files.hash(toHash, Hashing.sha256());
+                        hashString = hashCode.toString();
+                    }
+                    tile.put("sha256", hashString);
                     tile.put("tile_format", "TIFF");
                     tile.set("tile_shape", plane);
                     tiles.add(tile);
