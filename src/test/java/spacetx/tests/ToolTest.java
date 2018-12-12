@@ -179,6 +179,40 @@ public class ToolTest {
                 grep("primary_image-fov_000.json", "444", dir) >= 1);
     }
 
+    @Test
+    public void testMultipleScreensFail() throws Exception {
+        fake = fake("plates", "1");
+        Path extra = fake("plates", "1");
+        try {
+            assertTool(8, extra.toString());
+        } finally {
+            extra.toFile().delete();
+        }
+    }
+
+    @Test
+    public void testMultipleFOVsMultiSeriesFail() throws Exception {
+        fake = fake("series", "2");
+        Path extra = fake("series", "2");
+        try {
+            assertTool(4, extra.toString());
+        } finally {
+            extra.toFile().delete();
+        }
+    }
+
+    @Test
+    public void testMultipleFOVsSucceed() throws Exception {
+        fake = fake();
+        Path extra = fake();
+        try {
+            assertTool(0, extra.toString());
+            Assertions.assertEquals(2, matches("tiff", dir));
+        } finally {
+            extra.toFile().delete();
+        }
+    }
+
     /**
      * Delete the created resources under $TMPDIR unless cleanup was set to false.
      */

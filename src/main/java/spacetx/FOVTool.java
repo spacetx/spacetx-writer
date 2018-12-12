@@ -1,15 +1,11 @@
 package spacetx;
 
 import loci.common.LogbackTools;
-import loci.common.services.DependencyException;
-import loci.common.services.ServiceException;
-import loci.common.services.ServiceFactory;
-import loci.formats.*;
-import loci.formats.in.DynamicMetadataOptions;
-import loci.formats.meta.MetadataStore;
+import loci.formats.FormatException;
+import loci.formats.FormatWriter;
+import loci.formats.ImageReader;
 import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.out.OMETiffWriter;
-import loci.formats.services.OMEXMLService;
 import loci.formats.tiff.IFD;
 import loci.formats.tools.ImageConverter;
 import org.kohsuke.args4j.Argument;
@@ -21,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -38,8 +35,8 @@ public class FOVTool {
     //
 
     /**
-     * Represents the field-of-view in the <b>output fileset</b>
-     * regardless of the number of series in the input fileset.
+     * Represents the first field-of-view in the <b>output fileset</b>
+     * regardless of the number of series in the input filesets.
      */
     @Option(name="-f", usage="field of view", metaVar="FOV")
     private int fov = 0;
@@ -54,7 +51,7 @@ public class FOVTool {
     /**
      * Path to the codebook which should be attached to the fileset.
      * It will be copied into the output directory. If no codebook is
-     * provide, then the name "codebook.json" will be used.
+     * provided, then the name "codebook.json" will be used.
      */
     @Option(name="-c", usage="codebook to attach", metaVar="CODEBOOK")
     private File codebook = new File("codebook.json");
@@ -79,20 +76,19 @@ public class FOVTool {
     //
 
     /**
-     * Represents the field-of-view in the <b>output fileset</b>
-     * regardless of the number of series in the input fileset.
+     * Chooses which series from given filesets will be included in the field-of-view.
      */
     @Option(name="-s", usage="series offset of image", metaVar="SERIES")
     private int series = -1;
 
     /**
-     * Primary input file to Bio-Formats. Related files will be auto-detected.
+     * Primary input files to Bio-Formats. Related files will be auto-detected.
      *
      * See https://docs.openmicroscopy.org/latest/bioformats/formats/dataset-table.html
      * for more information.
      */
     @Argument(required=true, metaVar="INPUT", usage="main input file for Bio-Formats")
-    private String input = null;
+    private List<String> inputs = null;
 
     //
     // STATISTICS
@@ -123,10 +119,12 @@ public class FOVTool {
 
         try {
             parser.parseArgument(args);
-            if (!new File(input).exists()) {
-                throw new UsageException(1, String.format(
-                        "input does not exist (%s)", input
-                ));
+            for (String input : inputs) {
+                if (!new File(input).exists()) {
+                    throw new UsageException(1, String.format(
+                            "input does not exist (%s)", input
+                    ));
+                }
             }
             if (out.exists()) {
                 throw new UsageException(3, String.format(
@@ -139,7 +137,23 @@ public class FOVTool {
                         "FOV must be a greater than or equal to 0 (%d)", fov
                 ));
             }
-            return convert();
+
+            LogbackTools.setRootLevel(LOGLEVEL);
+
+            int loop = 0;
+            int rv = 0;
+            final ExperimentWriter writer = new ExperimentWriter(naming, out);
+            for (String input : inputs) {
+                FOVParser fovParser = new FOVParser(input);
+                try {
+                    rv += convert(fovParser, writer, loop++);
+                    writer.write();
+                } finally {
+                    fovParser.close();
+                }
+            }
+            return rv;
+
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
             System.err.println("java spacetx.FOVTool [options...] arguments...");
@@ -154,7 +168,7 @@ public class FOVTool {
     }
 
     /**
-     * Reads the input file into an {@link ImageReader} in order to have all necessary metadata,
+     * Reads an input file into a {@link ImageReader} in order to have all necessary metadata,
      * then uses {@link ImageConverter} to produce the TIFF stacks, and finally uses {@link FOVWriter}
      * to produce the necessary JSON.
      *
@@ -163,36 +177,23 @@ public class FOVTool {
      * @throws FormatException
      * @throws UsageException
      */
-    public int convert() throws IOException, FormatException, UsageException {
-
-        LogbackTools.setRootLevel(LOGLEVEL);
-
-        // First use the generic reader object to load the metadata
-        DynamicMetadataOptions options = new DynamicMetadataOptions();
-        options.setValidate(true);
-        OMEXMLMetadata meta = null;
-        try {
-            OMEXMLService xml = new ServiceFactory().getInstance(OMEXMLService.class);
-            meta = xml.createOMEXMLMetadata();
-        } catch (ServiceException | DependencyException exc) {
-            throw new FormatException("Error creating metadata service");
-        }
-        ImageReader reader = new ImageReader();
-        reader.setMetadataOptions(options);
-        reader.setGroupFiles(true);
-        reader.setMetadataFiltered(true);
-        reader.setOriginalMetadataPopulated(true);
-        reader.setMetadataStore(meta);
-        reader.setId(input);
-        MetadataStore store = reader.getMetadataStore();
-        // doPlane: true is critical for position information
-        MetadataTools.populatePixels(store, reader, true, false);
-
-        final int plateCount = meta.getPlateCount();
-        final int seriesCount = reader.getSeriesCount();
-        final ExperimentWriter writer = new ExperimentWriter(naming, out);
+    public int convert(FOVParser parser, ExperimentWriter writer, int loop)
+            throws IOException, FormatException, UsageException {
+        int rv = 0;
+        String input = parser.getInput();
+        int plateCount = parser.getPlateCount();
+        int seriesCount = parser.getSeriesCount();
+        ImageReader reader = parser.getReader();
+        OMEXMLMetadata meta = parser.getMetadata();
 
         if (plateCount > 0) {
+            if (inputs.size() > 1) {
+                // slightly unattractive (and late) way of detecting screening data
+                // but this prevents us from needing to load data more than once and/or
+                // keep all data in memory.
+                throw new UsageException(8, "only a single screening fileset is supported");
+            }
+
             // We assume that a HCS dataset it more structured, having the same
             // coordinate system for all the wells, therefore we can remove some
             // of the restrictions around choosing FOV.
@@ -202,20 +203,21 @@ public class FOVTool {
                 throw new UsageException(6, String.format(
                         "Too many plates found (count=%d)", plateCount));
             }
+
             int wellCount = meta.getWellCount(0);
             if (wellCount != 1) {
                 throw new UsageException(7, String.format(
                         "Too many wells found (count=%d)", wellCount));
             }
+
+            // This counting loop will need to be updated when/if multiple SPWs are supported
             for (int i = 0; i < seriesCount; i++) {
                 reader.setSeries(i);
-                int rv = convertOne(reader, meta, writer, i);
+                rv += convertOne(reader, meta, input, writer, i+fov);
                 if (rv != 0) {
                     return rv;
                 }
             }
-            writer.write();
-            return 0;
         } else {
             if (seriesCount > 1) {
                 if (series < 0) {
@@ -228,13 +230,12 @@ public class FOVTool {
                     reader.setSeries(series);
                 }
             }
-            int rv = convertOne(reader, meta, writer, fov);
-            writer.write();
-            return rv;
+            rv += convertOne(reader, meta, input, writer, loop+fov);
         }
+        return rv;
     }
 
-    private int convertOne(ImageReader reader, OMEXMLMetadata meta, ExperimentWriter eWriter, int fov)
+    private int convertOne(ImageReader reader, OMEXMLMetadata meta, String input, ExperimentWriter eWriter, int fov)
             throws FormatException, IOException {
         String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
