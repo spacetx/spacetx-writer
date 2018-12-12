@@ -231,6 +231,12 @@ public class ToolTest {
         }
     }
 
+    @Test
+    public void testHCSInParallel() {
+        fake = fake("plates", "1", "fields", "12");
+        assertTool(0, "-j", "12");
+    }
+
     /**
      * Delete the created resources under $TMPDIR unless cleanup was set to false.
      */

@@ -19,6 +19,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.*;
 
 /**
@@ -113,6 +114,18 @@ public class FOVTool {
      */
     long elapsed = 0;
 
+    //
+    // GLOBAL PARALLEL STATE
+    //
+
+    ExperimentWriter writer;
+
+    ExecutorService executor;
+
+    ExecutorCompletionService<Integer> ecs;
+
+    Queue<Future<Integer>> futures;
+
     public static void main(String[] args) throws Exception {
         System.exit(new FOVTool().doMain(args));
     }
@@ -123,7 +136,7 @@ public class FOVTool {
 
         try {
             parser.parseArgument(args);
-            ExecutorService executor = Executors.newFixedThreadPool(threads);
+            executor = Executors.newFixedThreadPool(threads);
             for (String input : inputs) {
                 if (!new File(input).exists()) {
                     throw new UsageException(1, String.format(
@@ -147,44 +160,53 @@ public class FOVTool {
 
             int loop = 0;
             int rv = 0;
-            final ExperimentWriter writer = new ExperimentWriter(naming, out);
-            final ExecutorCompletionService<Integer> ecs = new ExecutorCompletionService<Integer>(executor);
-            final List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
+            writer = new ExperimentWriter(naming, out);
+            ecs = new ExecutorCompletionService<>(executor);
+            futures = new ConcurrentLinkedQueue<>();
             for (String input : inputs) {
                 final int inner = loop++;
-                futures.add(ecs.submit(new Callable<Integer>(){
-                    @Override
-                    public Integer call() throws Exception {
-                        FOVParser fovParser = new FOVParser(input);
-                        try {
-                            return convert(fovParser, writer, inner);
-                        } finally {
+                futures.add(ecs.submit(() -> {
+                            FOVParser fovParser = new FOVParser(input);
                             try {
-                                writer.write();
+                                return convert(fovParser, writer, inner);
                             } finally {
-                                fovParser.close();
+                                try {
+                                    writer.write();
+                                } finally {
+                                    fovParser.close();
+                                }
                             }
                         }
-                    }
-                }));
+                ));
             }
             for (Future<Integer> future : futures) {
                 rv += future.get();
             }
             return rv;
 
-        } catch (CmdLineException | InterruptedException | ExecutionException e) {
-            System.err.println(e.getMessage());
-            if (e instanceof ExecutionException) {
-                e.printStackTrace(); // These are hard to debug, so show the user the verbiage.
+        } catch (CmdLineException | InterruptedException | ExecutionException hide) {
+            Exception copy = hide;
+            if (copy instanceof ExecutionException) {
+                Throwable t = copy.getCause();
+                if (t instanceof UsageException) {
+                    copy = (UsageException) t;
+                } else {
+                    copy.printStackTrace(); // These are hard to debug, so show the user the verbiage.
+                }
             }
+
+            System.err.println(copy.getMessage());
             System.err.println("java spacetx.FOVTool [options...] arguments...");
             parser.printUsage(System.err);
             System.err.println();
-            if (e instanceof UsageException) {
-                return ((UsageException) e).rc;
+            if (copy instanceof UsageException) {
+                return ((UsageException) copy).rc;
             }
             return 2;
+        } finally {
+            if (executor != null) {
+                executor.shutdownNow();
+            }
         }
 
     }
@@ -234,10 +256,29 @@ public class FOVTool {
 
             // This counting loop will need to be updated when/if multiple SPWs are supported
             for (int i = 0; i < seriesCount; i++) {
-                reader.setSeries(i);
-                rv += convertOne(reader, meta, input, writer, i+fov);
-                if (rv != 0) {
-                    return rv;
+                if (threads <= 1) {
+                    reader.setSeries(i);
+                    rv += convertOne(reader, meta, input, writer, i + fov);
+                    if (rv != 0) {
+                        return rv;
+                    }
+                } else {
+                    // Only parallelizing in the SPW case if required due to memory constraints.
+                    final int inner = i;
+                    futures.add(ecs.submit(() -> {
+                                FOVParser fovParser = new FOVParser(input);
+                                fovParser.getReader().setSeries(inner);
+                                try {
+                                    return convertOne(fovParser.getReader(), meta, input, writer,inner+fov);
+                                } finally {
+                                    try {
+                                        writer.write();
+                                    } finally {
+                                        fovParser.close();
+                                    }
+                                }
+                            }
+                    ));
                 }
             }
         } else {
