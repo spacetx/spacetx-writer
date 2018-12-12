@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Produces the FOV json file for a SpaceTx experiment.
@@ -23,7 +25,7 @@ public class ExperimentWriter {
 
     private final Naming naming;
     private final File out;
-    private List<Integer> fovs = new ArrayList<Integer>();
+    private Queue<Integer> fovs = new ConcurrentLinkedQueue<>();
 
     public ExperimentWriter(Naming naming, File out) {
         this.out = out;

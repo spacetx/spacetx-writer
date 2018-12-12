@@ -213,6 +213,24 @@ public class ToolTest {
         }
     }
 
+    @Test
+    public void testMultipleFOVsInParallel() throws Exception {
+        fake = fake();
+        Path extra = fake();
+        Path extra2 = fake();
+        Path extra3 = fake();
+        try {
+            assertTool(0,
+                    extra.toString(), extra2.toString(), extra3.toString(),
+                    "-j" ,"4");
+            Assertions.assertEquals(4, matches("tiff", dir));
+        } finally {
+            extra.toFile().delete();
+            extra2.toFile().delete();
+            extra3.toFile().delete();
+        }
+    }
+
     /**
      * Delete the created resources under $TMPDIR unless cleanup was set to false.
      */

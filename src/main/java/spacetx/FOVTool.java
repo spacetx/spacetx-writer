@@ -16,9 +16,10 @@ import org.kohsuke.args4j.Option;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
+import java.util.concurrent.*;
 
 /**
  * Main entry point for SpaceTx FOV generation.
@@ -31,22 +32,8 @@ public class FOVTool {
     private final static String LOGLEVEL = System.getProperty("spacetx.FOVTool.loglevel", "warn");
 
     //
-    // PRIMARY ARGUMENTS
+    // PRIMARY ARGUMENTS (ordered alphabetically)
     //
-
-    /**
-     * Represents the first field-of-view in the <b>output fileset</b>
-     * regardless of the number of series in the input filesets.
-     */
-    @Option(name="-f", usage="field of view", metaVar="FOV")
-    private int fov = 0;
-
-    /**
-     * Non-extant directory which should be used to contain the
-     * SpaceTx output fileset.
-     */
-    @Option(name="-o", usage="create & output to this directory", metaVar="OUTPUT", required=true)
-    private File out = new File("out");
 
     /**
      * Path to the codebook which should be attached to the fileset.
@@ -55,6 +42,23 @@ public class FOVTool {
      */
     @Option(name="-c", usage="codebook to attach", metaVar="CODEBOOK")
     private File codebook = new File("codebook.json");
+
+    /**
+     * Represents the first field-of-view in the <b>output fileset</b>
+     * regardless of the number of series in the input filesets.
+     */
+    @Option(name="-f", usage="field of view", metaVar="FOV")
+    private int fov = 0;
+
+    @Option(name="-j", usage="concurrent threads", metaVar="THREADS")
+    private int threads = 1;
+
+    /**
+     * Non-extant directory which should be used to contain the
+     * SpaceTx output fileset.
+     */
+    @Option(name="-o", usage="create & output to this directory", metaVar="OUTPUT", required=true)
+    private File out = new File("out");
 
     /**
      * Naming strategies for generating the names of files on disk.
@@ -119,6 +123,7 @@ public class FOVTool {
 
         try {
             parser.parseArgument(args);
+            ExecutorService executor = Executors.newFixedThreadPool(threads);
             for (String input : inputs) {
                 if (!new File(input).exists()) {
                     throw new UsageException(1, String.format(
@@ -143,19 +148,36 @@ public class FOVTool {
             int loop = 0;
             int rv = 0;
             final ExperimentWriter writer = new ExperimentWriter(naming, out);
+            final ExecutorCompletionService<Integer> ecs = new ExecutorCompletionService<Integer>(executor);
+            final List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
             for (String input : inputs) {
-                FOVParser fovParser = new FOVParser(input);
-                try {
-                    rv += convert(fovParser, writer, loop++);
-                    writer.write();
-                } finally {
-                    fovParser.close();
-                }
+                final int inner = loop++;
+                futures.add(ecs.submit(new Callable<Integer>(){
+                    @Override
+                    public Integer call() throws Exception {
+                        FOVParser fovParser = new FOVParser(input);
+                        try {
+                            return convert(fovParser, writer, inner);
+                        } finally {
+                            try {
+                                writer.write();
+                            } finally {
+                                fovParser.close();
+                            }
+                        }
+                    }
+                }));
+            }
+            for (Future<Integer> future : futures) {
+                rv += future.get();
             }
             return rv;
 
-        } catch (CmdLineException e) {
+        } catch (CmdLineException | InterruptedException | ExecutionException e) {
             System.err.println(e.getMessage());
+            if (e instanceof ExecutionException) {
+                e.printStackTrace(); // These are hard to debug, so show the user the verbiage.
+            }
             System.err.println("java spacetx.FOVTool [options...] arguments...");
             parser.printUsage(System.err);
             System.err.println();
