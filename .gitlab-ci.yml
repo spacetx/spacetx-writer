@@ -6,7 +6,7 @@ services:
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_DRIVER: overlay2
-  CONTAINER_TEST_IMAGE: registry.gitlab.com/openmicroscopy/incubator/spacetx-fov-writer/cli:$CI_COMMIT_REF_SLUG
+  CONTAINER_TEST_IMAGE: registry.gitlab.com/openmicroscopy/incubator/spacetx-fov-writer:$CI_COMMIT_REF_SLUG
   CONTAINER_RELEASE_IMAGE: registry.gitlab.com/openmicroscopy/incubator/spacetx-fov-writer:latest
 
 stages:
