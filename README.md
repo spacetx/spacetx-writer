@@ -58,12 +58,12 @@ Usage
 If you would like to use the docker image, it is important that you mount input and output
 directories into the container:
 
-    docker run -ti --rm -v /tmp:/tmp -v /data:/data:ro spacetx-fov-writer ...
+    docker run -ti --rm -v /tmp:/tmp -v /data:/data:ro spacetx-writer ...
 
 Once that is done, behavior of the docker container and the command-line are the same. A
 simplest invocation would be:
 
-    spacetx-fov-writer -o /tmp/new-directory /data/my-data.nd2
+    spacetx-writer -o /tmp/new-directory /data/my-data.nd2
 
 See `-h` for more information.
 
@@ -104,7 +104,7 @@ If Bio-Formats does not show the expected dimensions, you may need to try [group
 Further Resources
 -----------------
 
-- [SpaceTx format specification](https://github.com/spacetx/sptx-format)
+- [SpaceTx format specification](https://spacetx-starfish.readthedocs.io/en/stable/sptx-format/)
 - [Starfish library](https://github.com/spacetx/starfish)
 - [Bio-Formats homepage](https://www.openmicroscopy.org/bio-formats)
 - [Bio-Formats documentation](https://docs.openmicroscopy.org/bio-formats/6.0.1)

@@ -22,30 +22,30 @@ ARG RUN_IMAGE=openjdk:8-slim
 FROM ${BUILD_IMAGE} as build
 USER root
 RUN useradd -ms /bin/bash build
-COPY build.gradle /opt/spacetx-fov-writer/build.gradle
-RUN chown -R build /opt/spacetx-fov-writer
+COPY build.gradle /opt/spacetx-writer/build.gradle
+RUN chown -R build /opt/spacetx-writer
 
 # Pre-load all the jars which significantly speeds up developmnet
-WORKDIR /opt/spacetx-fov-writer
+WORKDIR /opt/spacetx-writer
 USER build
 RUN env GRADLE_OPTS="-Dorg.gradle.daemon=false" gradle deps
 
 # Copy the rest of the code
 USER root
-COPY src /opt/spacetx-fov-writer/src
-RUN chown -R build /opt/spacetx-fov-writer
+COPY src /opt/spacetx-writer/src
+RUN chown -R build /opt/spacetx-writer
 
 USER build
-WORKDIR /opt/spacetx-fov-writer
+WORKDIR /opt/spacetx-writer
 RUN env GRADLE_OPTS="-Dorg.gradle.daemon=false" gradle build
 
 FROM ${RUN_IMAGE} as run
-COPY --from=build /opt/spacetx-fov-writer/build/distributions/*.tar /tmp
+COPY --from=build /opt/spacetx-writer/build/distributions/*.tar /tmp
 
 USER root
-RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-fov-writer-0.0.4-SNAPSHOT.tar \
- &&  rm /tmp/spacetx-fov-writer*tar
+RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-writer-0.0.4-SNAPSHOT.tar \
+ &&  rm /tmp/spacetx-writer*tar
 
-RUN useradd -ms /bin/bash sptx
-USER sptx
-ENTRYPOINT ["spacetx-fov-writer"]
+RUN useradd -ms /bin/bash spacetx
+USER spacetx
+ENTRYPOINT ["spacetx-writer"]

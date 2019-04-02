@@ -1,10 +1,10 @@
 FAKE ?= primary_image&sizeX=16&sizeY=16&sizeC=2&sizeT=3&sizeZ=4.fake
 
-IMAGE ?= spacetx-fov-writer
+IMAGE ?= spacetx/spacetx-writer:latest
 
 SPACETX ?= spacetx/starfish:latest
 
-DIR ?= /tmp/test
+DIR ?= $(PWD)/build/spacetx-writer-test
 
 all: docker $(FAKE) test verify
 
@@ -22,6 +22,6 @@ test: $(FAKE)
 
 verify:
 	docker pull $(SPACETX)
-	docker run --rm -v $(DIR):$(DIR) $(SPACETX) validate --experiment-json $(DIR)/out/experiment.json
+	docker run --rm -v $(DIR):/data:ro $(SPACETX) validate --experiment-json /data/out/experiment.json
 
 .PHONY: all travis docker test verify
