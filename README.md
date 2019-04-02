@@ -72,7 +72,7 @@ See `-h` for more information.
 Bio-Formats takes a single input file, searches through around 150 different file formats
 to determine the type, and then groups associated files together into a single fileset
 automatically. You can see a list of the file formats and which file should be chosen
-on the [Datset Structure Table](https://docs.openmicroscopy.org/bio-formats/6.0.0-m3/formats/dataset-table.html)
+on the [Datset Structure Table](https://docs.openmicroscopy.org/bio-formats/6.0.1/formats/dataset-table.html)
 page.
 
 ### Grouping files
@@ -91,7 +91,7 @@ your chosen pattern:
     my_tiffs_z<1-12>_c<1-3>_t<1-100>.tiff
 
 For more information, see the
-[Grouping files using a pattern file](https://docs.openmicroscopy.org/bio-formats/6.0.0-m3/formats/pattern-file.html)
+[Grouping files using a pattern file](https://docs.openmicroscopy.org/bio-formats/6.0.1/formats/pattern-file.html)
 page on the Bio-Formats documentation.
 
 
@@ -107,4 +107,4 @@ Further Resources
 - [SpaceTx format specification](https://github.com/spacetx/sptx-format)
 - [Starfish library](https://github.com/spacetx/starfish)
 - [Bio-Formats homepage](https://www.openmicroscopy.org/bio-formats)
-- [Bio-Formats documentation](https://docs.openmicroscopy.org/bio-formats/6.0.0-m3)
+- [Bio-Formats documentation](https://docs.openmicroscopy.org/bio-formats/6.0.1)

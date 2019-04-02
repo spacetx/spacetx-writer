@@ -7,7 +7,7 @@ group = "spacetx"
 version = "0.0.4-SNAPSHOT"
 
 ext {
-    bfversion = "6.0.0-m3"
+    bfversion = "6.0.1"
 }
 
 repositories {
