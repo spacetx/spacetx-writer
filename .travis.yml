@@ -1,0 +1,9 @@
+language: python
+cache: pip
+sudo: required
+services:
+- docker
+
+script:
+- docker build --pull -t spacetx-writer .
+- make DIR=/tmp IMAGE=spacetx-writer all

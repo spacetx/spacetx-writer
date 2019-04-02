@@ -1,5 +1,5 @@
-SpaceTx FOV Writer
-==================
+SpaceTx Writer
+==============
 
 Command-line tool and library for converting bioimaging filesets
 into the SpaceTx format. Generated filesets contain the required
@@ -32,23 +32,23 @@ the Gradle user home directory (`~/.gradle` by default).
 
 You will need to unpack one of the built distribution from `build/distributions`, e.g.:
 
-    unzip -d /tmp/ build/distributions/spacetx-fov-writer-$VERSION.zip
-    /tmp/spacetx-fov-writer-$VERSION/bin/spacetx-fov-writer
+    unzip -d /tmp/ build/distributions/spacetx-writer-$VERSION.zip
+    /tmp/spacetx-writer-$VERSION/bin/spacetx-writer
 
 ### Building with Docker
 
 If instead of installing a JDK and building from source, you can locally build the docker image:
 From the root directory, run:
 
-    docker build -t spacetx-fov-writer .
+    docker build -t spacetx-writer .
 
-Running the built image will call the `spacetx-fov-writer` executable by default.
+Running the built image will call the `spacetx-writer` executable by default.
 
 ### Pulling from GitLab
 
-Finally, you can pull a pre-built image from GitLab:
+Finally, you can pull a pre-built image from Docker Hub:
 
-    docker pull registry.gitlab.com/openmicroscopy/incubator/spacetx-fov-writer:$TAG
+    docker pull spacetx/spacetx-writer
 
 Usage
 -----
