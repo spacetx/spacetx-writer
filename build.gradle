@@ -1,7 +1,10 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-mainClassName = 'spacetx.FOVTool'
+application {
+    mainClassName = 'spacetx.FOVTool'
+    applicationDefaultJvmArgs = ['-Xmx2G']
+}
 
 group = "spacetx"
 version = "0.0.4-SNAPSHOT"
