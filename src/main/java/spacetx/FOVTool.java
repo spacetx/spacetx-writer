@@ -1,9 +1,11 @@
 package spacetx;
 
 import loci.common.LogbackTools;
+import loci.formats.FileStitcher;
 import loci.formats.FormatException;
 import loci.formats.FormatWriter;
 import loci.formats.ImageReader;
+import loci.formats.in.MinimalTiffReader;
 import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.out.OMETiffWriter;
 import loci.formats.tiff.IFD;
@@ -16,10 +18,8 @@ import org.kohsuke.args4j.Option;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Queue;
+import java.nio.file.Files;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -75,6 +75,9 @@ public class FOVTool {
      */
     @Option(name="--no-tiffs", usage="skip generation of OME-TIFFs")
     private boolean noTiffs = false;
+
+    @Option(name="--guess", usage="guess a pattern file")
+    private boolean guess = false;
 
     //
     // BIO-FORMATS INTERNALS
@@ -144,19 +147,44 @@ public class FOVTool {
                     ));
                 }
             }
+
             if (out.exists()) {
                 throw new UsageException(3, String.format(
-                        "output folder already exists! (%s)", out));
+                        "output location already exists! (%s)", out));
+            }
+
+            LogbackTools.setRootLevel(LOGLEVEL);
+
+            if (guess) {
+                // In the guess scenario, we don't want to create an output
+                // directory, but a single file which will be the input to
+                // a new execution. (i.e. EXIT EARLY)
+
+
+                if (!out.getAbsolutePath().endsWith(".pattern")) {
+                    throw new UsageException(9, String.format(
+                            "pattern files must end in '.pattern'"
+                    ));
+                }
+
+                inputs.sort(Comparator.naturalOrder());
+                FileStitcher stitcher = new FileStitcher(new MinimalTiffReader());
+                stitcher.setId(inputs.get(0));
+                String content = stitcher.getFilePattern().getPattern();
+                out.getParentFile().mkdirs();
+                Files.write(out.toPath(), content.getBytes());
+                System.out.println(String.format("Wrote %s to %s", content, out));
+                return 0;
+
             } else {
                 out.mkdirs();
             }
+
             if (fov < 0) {
                 throw new UsageException(5, String.format(
                         "FOV must be a greater than or equal to 0 (%d)", fov
                 ));
             }
-
-            LogbackTools.setRootLevel(LOGLEVEL);
 
             int loop = 0;
             int rv = 0;
@@ -195,14 +223,20 @@ public class FOVTool {
                 }
             }
 
-            System.err.println(copy.getMessage());
-            System.err.println("java spacetx.FOVTool [options...] arguments...");
+            System.err.println("spacetx-writer [options...] arguments...");
             parser.printUsage(System.err);
             System.err.println();
+
+            int rc = 2;
             if (copy instanceof UsageException) {
-                return ((UsageException) copy).rc;
+                rc = ((UsageException) copy).rc;
             }
-            return 2;
+            String line = String.join("", Collections.nCopies(60, "="));
+            System.err.println(line);
+            System.err.println(String.format(
+                    "ERROR(%s): %s", rc, copy.getMessage()));
+            System.err.println(line);
+            return rc;
         } finally {
             if (executor != null) {
                 executor.shutdownNow();
