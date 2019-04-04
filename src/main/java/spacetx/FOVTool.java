@@ -10,6 +10,7 @@ import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.out.OMETiffWriter;
 import loci.formats.tiff.IFD;
 import loci.formats.tools.ImageConverter;
+import loci.formats.tools.ImageInfo;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -33,7 +34,7 @@ public class FOVTool {
     private final static String LOGLEVEL = System.getProperty("spacetx.FOVTool.loglevel", "warn");
 
     //
-    // PRIMARY ARGUMENTS (ordered alphabetically)
+    // PRIMARY INPUT ARGUMENTS
     //
 
     /**
@@ -54,12 +55,26 @@ public class FOVTool {
     @Option(name="-j", usage="concurrent threads", metaVar="THREADS")
     private int threads = 1;
 
+    //
+    // PRIMARY OUTPUT ARGUMENTS
+    //
+
     /**
      * Non-extant directory which should be used to contain the
      * SpaceTx output fileset.
      */
-    @Option(name="-o", usage="create & output to this directory", metaVar="OUTPUT", required=true)
-    private File out = new File("out");
+    @Option(name="-o", usage="create & output to this directory", metaVar="OUTPUT")
+    private File out = null;
+
+    @Option(name="--guess", usage="guess a pattern file")
+    private boolean guess = false;
+
+    @Option(name="--info", usage="print information about the fileset and exit")
+    private boolean info = false;
+
+    //
+    // ADVANCED ARGUMENTS
+    //
 
     /**
      * Naming strategies for generating the names of files on disk.
@@ -76,9 +91,6 @@ public class FOVTool {
     @Option(name="--no-tiffs", usage="skip generation of OME-TIFFs")
     private boolean noTiffs = false;
 
-    @Option(name="--guess", usage="guess a pattern file")
-    private boolean guess = false;
-
     //
     // BIO-FORMATS INTERNALS
     //
@@ -86,8 +98,14 @@ public class FOVTool {
     /**
      * Chooses which series from given filesets will be included in the field-of-view.
      */
-    @Option(name="-s", usage="series offset of image", metaVar="SERIES")
+    @Option(name="-s", usage="adv: series offset of image", metaVar="SERIES")
     private int series = -1;
+
+    /**
+     *
+     */
+    @Option(name="--format", usage="adv: specify a specific filetype", metaVar="FORMAT")
+    private String format = null;
 
     /**
      * Primary input files to Bio-Formats. Related files will be auto-detected.
@@ -148,12 +166,22 @@ public class FOVTool {
                 }
             }
 
-            if (out.exists()) {
-                throw new UsageException(3, String.format(
-                        "output location already exists! (%s)", out));
-            }
-
             LogbackTools.setRootLevel(LOGLEVEL);
+
+            if (info) {
+                try {
+                    List<String> infoArgs = new ArrayList<>();
+                    if (format != null) {
+                        infoArgs.add("-format");
+                        infoArgs.add(format);
+                    }
+                    infoArgs.add(inputs.get(0));
+                    ImageInfo.main(infoArgs.stream().toArray(String[]::new));
+                    return 0;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
 
             if (guess) {
                 // In the guess scenario, we don't want to create an output
@@ -176,6 +204,13 @@ public class FOVTool {
                 System.out.println(String.format("Wrote %s to %s", content, out));
                 return 0;
 
+            }
+
+            if (out == null) {
+                throw new UsageException(10, "one of --output, --info, --guess required");
+            } else if (out.exists()) {
+                throw new UsageException(3, String.format(
+                        "output location already exists! (%s)", out));
             } else {
                 out.mkdirs();
             }
