@@ -12,6 +12,7 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import loci.formats.FormatTools;
+import loci.formats.IFormatReader;
 import loci.formats.ImageReader;
 import loci.formats.ome.OMEXMLMetadata;
 import ome.units.UNITS;
@@ -29,14 +30,14 @@ import java.math.BigDecimal;
  */
 public class FOVWriter {
 
-    private final ImageReader reader;
+    private final IFormatReader reader;
     private final OMEXMLMetadata meta;
     private final int sizeX, sizeY, sizeC, sizeT, sizeZ;
     private final int fov;
     private final Naming naming;
     private final File out;
 
-    public FOVWriter(ImageReader reader, OMEXMLMetadata meta, Naming naming, int fov, File out) {
+    public FOVWriter(IFormatReader reader, OMEXMLMetadata meta, Naming naming, int fov, File out) {
         this.reader = reader;
         this.meta = meta;
         this.fov = fov;

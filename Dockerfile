@@ -6,7 +6,7 @@
 
 # By default, building this dockerfile will use
 # the IMAGE argument below for the runtime image.
-ARG BUILD_IMAGE=gradle:4.9.0-jdk8
+ARG BUILD_IMAGE=gradle:5.2.1-jdk8
 
 # To build code with other runtimes
 # pass a build argument, e.g.:

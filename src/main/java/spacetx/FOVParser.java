@@ -4,7 +4,7 @@ import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatException;
-import loci.formats.ImageReader;
+import loci.formats.IFormatReader;
 import loci.formats.MetadataTools;
 import loci.formats.in.DynamicMetadataOptions;
 import loci.formats.meta.MetadataStore;
@@ -25,9 +25,11 @@ public class FOVParser {
 
     private OMEXMLMetadata meta;
 
-    private ImageReader reader;
+    private IFormatReader reader;
 
-    public FOVParser(String input) throws IOException, FormatException {
+    public FOVParser(IFormatReader reader, String input) throws IOException, FormatException {
+
+        this.reader = reader;
         this.input = input;
 
         // First use the generic reader object to load the metadata
@@ -40,7 +42,7 @@ public class FOVParser {
         } catch (ServiceException | DependencyException exc) {
             throw new FormatException("Error creating metadata service");
         }
-        reader = new ImageReader();
+
         reader.setMetadataOptions(options);
         reader.setGroupFiles(true);
         reader.setMetadataFiltered(true);
@@ -72,7 +74,7 @@ public class FOVParser {
         return meta;
     }
 
-    public ImageReader getReader() {
+    public IFormatReader getReader() {
         return reader;
     }
 

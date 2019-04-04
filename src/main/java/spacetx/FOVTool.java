@@ -1,11 +1,7 @@
 package spacetx;
 
 import loci.common.LogbackTools;
-import loci.formats.FileStitcher;
-import loci.formats.FormatException;
-import loci.formats.FormatWriter;
-import loci.formats.ImageReader;
-import loci.formats.in.MinimalTiffReader;
+import loci.formats.*;
 import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.out.OMETiffWriter;
 import loci.formats.tiff.IFD;
@@ -167,6 +163,12 @@ public class FOVTool {
             }
 
             LogbackTools.setRootLevel(LOGLEVEL);
+            IFormatReader reader = createReader(format);
+            if (format != null && reader == null) {
+                throw new UsageException(11, String.format(
+                    "unknown format: %s", format
+                ));
+            }
 
             if (info) {
                 try {
@@ -188,20 +190,23 @@ public class FOVTool {
                 // directory, but a single file which will be the input to
                 // a new execution. (i.e. EXIT EARLY)
 
-
-                if (!out.getAbsolutePath().endsWith(".pattern")) {
-                    throw new UsageException(9, String.format(
-                            "pattern files must end in '.pattern'"
-                    ));
-                }
-
                 inputs.sort(Comparator.naturalOrder());
-                FileStitcher stitcher = new FileStitcher(new MinimalTiffReader());
+                FileStitcher stitcher = new FileStitcher(reader);
                 stitcher.setId(inputs.get(0));
                 String content = stitcher.getFilePattern().getPattern();
-                out.getParentFile().mkdirs();
-                Files.write(out.toPath(), content.getBytes());
-                System.out.println(String.format("Wrote %s to %s", content, out));
+
+                if (out == null) {
+                    System.out.println(content);
+                } else {
+                    if (!out.getAbsolutePath().endsWith(".pattern")) {
+                        throw new UsageException(9, String.format(
+                                "pattern files must end in '.pattern'"
+                        ));
+                    }
+                    out.getParentFile().mkdirs();
+                    Files.write(out.toPath(), content.getBytes());
+                    System.out.println(String.format("Wrote %s to %s", content, out));
+                }
                 return 0;
 
             }
@@ -229,7 +234,7 @@ public class FOVTool {
             for (String input : inputs) {
                 final int inner = loop++;
                 futures.add(ecs.submit(() -> {
-                            FOVParser fovParser = new FOVParser(input);
+                            FOVParser fovParser = new FOVParser(createReader(format), input);
                             try {
                                 return convert(fovParser, writer, inner);
                             } finally {
@@ -296,7 +301,7 @@ public class FOVTool {
         String input = parser.getInput();
         int plateCount = parser.getPlateCount();
         int seriesCount = parser.getSeriesCount();
-        ImageReader reader = parser.getReader();
+        IFormatReader reader = parser.getReader();
         OMEXMLMetadata meta = parser.getMetadata();
 
         if (plateCount > 0) {
@@ -335,7 +340,7 @@ public class FOVTool {
                     // Only parallelizing in the SPW case if required due to memory constraints.
                     final int inner = i;
                     futures.add(ecs.submit(() -> {
-                                FOVParser fovParser = new FOVParser(input);
+                                FOVParser fovParser = new FOVParser(createReader(format), input);
                                 fovParser.getReader().setSeries(inner);
                                 try {
                                     return convertOne(fovParser.getReader(), meta, input, writer,inner+fov);
@@ -367,7 +372,7 @@ public class FOVTool {
         return rv;
     }
 
-    private int convertOne(ImageReader reader, OMEXMLMetadata meta, String input, ExperimentWriter eWriter, int fov)
+    private int convertOne(IFormatReader reader, OMEXMLMetadata meta, String input, ExperimentWriter eWriter, int fov)
             throws FormatException, IOException {
         String companion = String.format("%s/%s", out, naming.getCompanionFilename(fov));
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
@@ -407,6 +412,35 @@ public class FOVTool {
         } catch (Exception e) {
             throw new RuntimeException("Something's weird in Java land", e);
         }
+    }
+
+    /**
+     * If no format is passed, return an {@link ImageReader}. Otherwise, try to
+     * create an instance of the given format, first be prepending "loci.formats.in"
+     * and appending "Reader" and then by simply looking up the class. If no such
+     * class is found, return null.
+     *
+     * @param format possibly null
+     * @return possibly null {@link IFormatReader}
+     */
+    private static IFormatReader createReader(String format) {
+
+        if (format == null) {
+            return new ImageReader();
+        }
+
+        try {
+            Class c = Class.forName(String.format(String.format("loci.formats.in.%sReader", format)));
+            return (IFormatReader) c.newInstance();
+        } catch (Exception e) {
+            try {
+                Class c = Class.forName(String.format(format));
+                return (IFormatReader) c.newInstance();
+            } catch (Exception e2) {
+                return null;
+            }
+        }
+
     }
 
     /*
