@@ -156,18 +156,14 @@ public class FOVTool {
             executor = Executors.newFixedThreadPool(threads);
             for (String input : inputs) {
                 if (!new File(input).exists()) {
-                    throw new UsageException(1, String.format(
-                            "input does not exist (%s)", input
-                    ));
+                    Errors.doesNotExist.raise(input);
                 }
             }
 
             LogbackTools.setRootLevel(LOGLEVEL);
             IFormatReader reader = createReader(format);
             if (format != null && reader == null) {
-                throw new UsageException(11, String.format(
-                    "unknown format: %s", format
-                ));
+                Errors.unknownFormat.raise(format);
             }
 
             if (info) {
@@ -199,9 +195,7 @@ public class FOVTool {
                     System.out.println(content);
                 } else {
                     if (!out.getAbsolutePath().endsWith(".pattern")) {
-                        throw new UsageException(9, String.format(
-                                "pattern files must end in '.pattern'"
-                        ));
+                        Errors.patternFiles.raise();
                     }
                     out.getParentFile().mkdirs();
                     Files.write(out.toPath(), content.getBytes());
@@ -212,18 +206,15 @@ public class FOVTool {
             }
 
             if (out == null) {
-                throw new UsageException(10, "one of --output, --info, --guess required");
+                Errors.needAction.raise();
             } else if (out.exists()) {
-                throw new UsageException(3, String.format(
-                        "output location already exists! (%s)", out));
+                Errors.outputExists.raise(out);
             } else {
                 out.mkdirs();
             }
 
             if (fov < 0) {
-                throw new UsageException(5, String.format(
-                        "FOV must be a greater than or equal to 0 (%d)", fov
-                ));
+                Errors.fovIsPositive.raise(fov);
             }
 
             int loop = 0;
@@ -256,8 +247,8 @@ public class FOVTool {
             Exception copy = hide;
             if (copy instanceof ExecutionException) {
                 Throwable t = copy.getCause();
-                if (t instanceof UsageException) {
-                    copy = (UsageException) t;
+                if (t instanceof Errors.UsageException) {
+                    copy = (Errors.UsageException) t;
                 } else {
                     copy.printStackTrace(); // These are hard to debug, so show the user the verbiage.
                 }
@@ -267,9 +258,9 @@ public class FOVTool {
             parser.printUsage(System.err);
             System.err.println();
 
-            int rc = 2;
-            if (copy instanceof UsageException) {
-                rc = ((UsageException) copy).rc;
+            int rc = Errors.usage.rc;
+            if (copy instanceof Errors.UsageException) {
+                rc = ((Errors.UsageException) copy).rc;
             }
             String line = String.join("", Collections.nCopies(60, "="));
             System.err.println(line);
@@ -293,10 +284,10 @@ public class FOVTool {
      * @return non-zero return code if anything went wrnog
      * @throws IOException
      * @throws FormatException
-     * @throws UsageException
+     * @throws Errors.UsageException
      */
     public int convert(FOVParser parser, ExperimentWriter writer, int loop)
-            throws IOException, FormatException, UsageException {
+            throws IOException, FormatException, Errors.UsageException {
         int rv = 0;
         String input = parser.getInput();
         int plateCount = parser.getPlateCount();
@@ -309,7 +300,7 @@ public class FOVTool {
                 // slightly unattractive (and late) way of detecting screening data
                 // but this prevents us from needing to load data more than once and/or
                 // keep all data in memory.
-                throw new UsageException(8, "only a single screening fileset is supported");
+                Errors.singleScreening.raise();
             }
 
             // We assume that a HCS dataset it more structured, having the same
@@ -318,14 +309,12 @@ public class FOVTool {
             if (plateCount > 1) {
                 // however, to allow fov to choose the _well_, we abort if there
                 // are more than one plate.
-                throw new UsageException(6, String.format(
-                        "Too many plates found (count=%d)", plateCount));
+                Errors.tooManyPlates.raise(plateCount);
             }
 
             int wellCount = meta.getWellCount(0);
             if (wellCount != 1) {
-                throw new UsageException(7, String.format(
-                        "Too many wells found (count=%d)", wellCount));
+                Errors.tooManyWells.raise(wellCount);
             }
 
             // This counting loop will need to be updated when/if multiple SPWs are supported
@@ -359,10 +348,7 @@ public class FOVTool {
             if (seriesCount > 1) {
                 if (series < 0) {
                     // User didn't choose a series
-                    throw new UsageException(4,
-                            String.format("%s contains multiple images (count=%d). Please choose one.",
-                                    input, reader.getSeriesCount())
-                    );
+                    Errors.multipleImages.raise(input, reader.getSeriesCount());
                 } else {
                     reader.setSeries(series);
                 }
@@ -441,19 +427,6 @@ public class FOVTool {
             }
         }
 
-    }
-
-    /*
-     * Allows passing a return code for CLI failures.
-     */
-    private static class UsageException extends CmdLineException {
-
-        final int rc;
-
-        UsageException(int rc, String message) {
-            super(message);
-            this.rc = rc;
-        }
     }
 
     /**
