@@ -2,6 +2,8 @@ package spacetx;
 
 import loci.common.LogbackTools;
 import loci.formats.*;
+import loci.formats.in.DynamicMetadataOptions;
+import loci.formats.in.MetadataOptions;
 import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.out.OMETiffWriter;
 import loci.formats.tiff.IFD;
@@ -87,6 +89,20 @@ public class FOVTool {
     @Option(name="--no-tiffs", usage="skip generation of OME-TIFFs")
     private boolean noTiffs = false;
 
+    /**
+     * Options to pass to Bio-Formats.
+     * See https://docs.openmicroscopy.org/latest/bio-formats/formats/options.html?highlight=options
+     */
+    @Option(name="--options", usage="Options of the form: 'k=v:k=v'")
+    private String options = "";
+
+    /**
+     * Options to pass to Bio-Formats.
+     * See https://docs.openmicroscopy.org/latest/bio-formats/formats/options.html?highlight=options
+     */
+    @Option(name="--flags", usage="Flags of the form 'f1:f2' without hyphens")
+    private String flags = ""; // TODO: these won't apply to --guess
+
     //
     // BIO-FORMATS INTERNALS
     //
@@ -169,6 +185,7 @@ public class FOVTool {
             if (info) {
                 try {
                     List<String> infoArgs = new ArrayList<>();
+                    addOptions(infoArgs);
                     if (format != null) {
                         infoArgs.add("-format");
                         infoArgs.add(format);
@@ -188,6 +205,7 @@ public class FOVTool {
 
                 inputs.sort(Comparator.naturalOrder());
                 FileStitcher stitcher = new FileStitcher(reader);
+                addOptions(stitcher);
                 stitcher.setId(inputs.get(0));
                 String content = stitcher.getFilePattern().getPattern();
 
@@ -364,14 +382,19 @@ public class FOVTool {
         String tiffs = String.format("%s/%s", out, naming.getTiffPattern(fov));
         ImageConverter converter = createConverter();
 
-        String[] cmd = new String[]{
-                "-series", String.valueOf(reader.getSeries()),
-                "-option", "ometiff.companion", companion,
-                "-validate", input, tiffs
-        };
+        List<String> cmd = new ArrayList<>();
+        addOptions(cmd);
+        cmd.add("-series");
+        cmd.add(String.valueOf(reader.getSeries()));
+        cmd.add("-option");
+        cmd.add("ometiff.companion");
+        cmd.add(companion);
+        cmd.add("-validate");
+        cmd.add(input);
+        cmd.add(tiffs);
         if (!noTiffs) {
             try (FormatWriter writer = imageWriter()) {
-                if (!converter.testConvert(writer, cmd)) {
+                if (!converter.testConvert(writer, cmd.stream().toArray(String[]::new))) {
                     System.out.println("Conversion failed!");
                     return 1;
                 }
@@ -458,5 +481,37 @@ public class FOVTool {
                 }
             }
         };
+    }
+
+    /**
+     * Add each option to the given arguments list.
+     */
+    private void addOptions(List<String> args) {
+        for (String option : options.split(";")) {
+            args.add("-option");
+            for (String kOrV : option.split("=", 1)) {
+                args.add(kOrV);
+            }
+        }
+        for (String flag : flags.split("[:;]")) {
+            args.add("-"+flag);
+        }
+    }
+
+    /**
+     * Add each option to the given reader's metadata options.
+     */
+    private void addOptions(IFormatReader reader) {
+
+        if (options.isEmpty()) {
+            return;
+        }
+
+        DynamicMetadataOptions opts = (DynamicMetadataOptions) reader.getMetadataOptions();
+        for (String option : options.split("[:;]")) {
+            String[] kv = option.split("=", 1);
+            opts.set(kv[0], kv[1]);
+        }
+
     }
 }
