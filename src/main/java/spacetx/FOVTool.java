@@ -94,14 +94,14 @@ public class FOVTool {
      * See https://docs.openmicroscopy.org/latest/bio-formats/formats/options.html?highlight=options
      */
     @Option(name="--options", usage="Options of the form: 'k=v:k=v'")
-    private String options = "";
+    private String options = null;
 
     /**
      * Options to pass to Bio-Formats.
      * See https://docs.openmicroscopy.org/latest/bio-formats/formats/options.html?highlight=options
      */
     @Option(name="--flags", usage="Flags of the form 'f1:f2' without hyphens")
-    private String flags = ""; // TODO: these won't apply to --guess
+    private String flags = null; // TODO: these won't apply to --guess
 
     //
     // BIO-FORMATS INTERNALS
@@ -159,6 +159,8 @@ public class FOVTool {
 
     Queue<Future<Integer>> futures;
 
+    IFormatReader reader;
+
     public static void main(String[] args) throws Exception {
         System.exit(new FOVTool().doMain(args));
     }
@@ -177,7 +179,7 @@ public class FOVTool {
             }
 
             LogbackTools.setRootLevel(LOGLEVEL);
-            IFormatReader reader = createReader(format);
+            reader = createReader(format);
             if (format != null && reader == null) {
                 Errors.unknownFormat.raise(format);
             }
@@ -185,6 +187,8 @@ public class FOVTool {
             if (info) {
                 try {
                     List<String> infoArgs = new ArrayList<>();
+                    infoArgs.add("-nopix");
+                    infoArgs.add("-cache"); // TODO: should match options
                     addOptions(infoArgs);
                     if (format != null) {
                         infoArgs.add("-format");
@@ -205,7 +209,7 @@ public class FOVTool {
 
                 inputs.sort(Comparator.naturalOrder());
                 FileStitcher stitcher = new FileStitcher(reader);
-                addOptions(stitcher);
+                addOptions(stitcher); // TODO: perhaps not necessary
                 stitcher.setId(inputs.get(0));
                 String content = stitcher.getFilePattern().getPattern();
 
@@ -289,6 +293,9 @@ public class FOVTool {
         } finally {
             if (executor != null) {
                 executor.shutdownNow();
+            }
+            if (reader != null) {
+                reader.close();
             }
         }
 
@@ -432,24 +439,27 @@ public class FOVTool {
      * @param format possibly null
      * @return possibly null {@link IFormatReader}
      */
-    private static IFormatReader createReader(String format) {
+    private IFormatReader createReader(String format) throws Errors.UsageException {
 
+        IFormatReader reader = null;
         if (format == null) {
-            return new ImageReader();
-        }
-
-        try {
-            Class c = Class.forName(String.format(String.format("loci.formats.in.%sReader", format)));
-            return (IFormatReader) c.newInstance();
-        } catch (Exception e) {
+            reader = new ImageReader();
+        } else {
             try {
-                Class c = Class.forName(String.format(format));
-                return (IFormatReader) c.newInstance();
-            } catch (Exception e2) {
-                return null;
+                Class c = Class.forName(String.format(String.format("loci.formats.in.%sReader", format)));
+                reader = (IFormatReader) c.newInstance();
+            } catch (Exception e) {
+                try {
+                    Class c = Class.forName(String.format(format));
+                    reader = (IFormatReader) c.newInstance();
+                } catch (Exception e2) {
+                    return null;  // EARLY EXIT!
+                }
             }
         }
-
+        reader = new Memoizer(reader, 0L, new File("/data"));
+        addOptions(reader);
+        return reader;
     }
 
     /**
@@ -487,31 +497,35 @@ public class FOVTool {
      * Add each option to the given arguments list.
      */
     private void addOptions(List<String> args) {
-        for (String option : options.split(";")) {
-            args.add("-option");
-            for (String kOrV : option.split("=", 1)) {
-                args.add(kOrV);
+        if (options != null) {
+            for (String option : options.split("[:;]")) {
+                args.add("-option");
+                for (String kOrV : option.split("=")) {
+                    args.add(kOrV);
+                }
             }
         }
-        for (String flag : flags.split("[:;]")) {
-            args.add("-"+flag);
+        if (flags != null) {
+            for (String flag : flags.split("[:;]")) {
+                args.add("-"+flag);
+            }
         }
     }
 
     /**
      * Add each option to the given reader's metadata options.
      */
-    private void addOptions(IFormatReader reader) {
-
-        if (options.isEmpty()) {
-            return;
+    private void addOptions(IFormatReader reader) throws Errors.UsageException {
+        if (options != null) {
+            DynamicMetadataOptions opts = (DynamicMetadataOptions) reader.getMetadataOptions();
+            for (String option : options.split("[:;]")) {
+                String[] kv = option.split("=");
+                if (kv.length != 2) {
+                    throw Errors.badOption.raise(option);
+                } else {
+                    opts.set(kv[0], kv[1]);
+                }
+            }
         }
-
-        DynamicMetadataOptions opts = (DynamicMetadataOptions) reader.getMetadataOptions();
-        for (String option : options.split("[:;]")) {
-            String[] kv = option.split("=", 1);
-            opts.set(kv[0], kv[1]);
-        }
-
     }
 }

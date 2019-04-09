@@ -21,7 +21,8 @@ public enum Errors {
     singleScreening(8, "only a single screening fileset is supported"),
     patternFiles(9, "pattern files must end in '.pattern'"),
     needAction(10, "one of --output, --info, --guess required"),
-    unknownFormat(11,"unknown format: %s" );
+    unknownFormat(11,"unknown format: %s" ),
+    badOption(12,"bad option: %s" );
 
     public final int rc;
 
@@ -32,7 +33,7 @@ public enum Errors {
         this.msg = msg;
     }
 
-    public void raise(Object...args) throws UsageException {
+    public UsageException raise(Object...args) throws UsageException {
         throw new UsageException(rc, String.format(msg, args));
     }
 
