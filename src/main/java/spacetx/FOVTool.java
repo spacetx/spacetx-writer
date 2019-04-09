@@ -457,7 +457,7 @@ public class FOVTool {
                 }
             }
         }
-        reader = new Memoizer(reader, 0L, new File("/data"));
+        reader = new Memoizer(reader);
         addOptions(reader);
         return reader;
     }
