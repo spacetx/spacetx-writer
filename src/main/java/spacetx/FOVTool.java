@@ -13,6 +13,8 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +27,8 @@ import java.util.concurrent.*;
  * Main entry point for SpaceTx FOV generation.
  */
 public class FOVTool {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(FOVTool.class);
 
     /**
      * Set to desired logging level
@@ -373,7 +377,10 @@ public class FOVTool {
             if (seriesCount > 1) {
                 if (series < 0) {
                     // User didn't choose a series
-                    Errors.multipleImages.raise(input, reader.getSeriesCount());
+                    for (int i = 0; i < seriesCount; i++) {
+                        LOGGER.error(String.format("series %s: '%s'", i, meta.getImageName(i)));
+                    }
+                    Errors.multipleImages.raise(input, seriesCount);
                 } else {
                     reader.setSeries(series);
                 }
@@ -524,6 +531,17 @@ public class FOVTool {
                     throw Errors.badOption.raise(option);
                 } else {
                     opts.set(kv[0], kv[1]);
+                }
+            }
+        }
+        if (flags != null) {
+            for (String flag : flags.split("[:;]")) {
+                switch (flag) {
+                    case "noflat":
+                        reader.setFlattenedResolutions(false);
+                        break;
+                    default:
+                        throw Errors.badFlag.raise(flag);
                 }
             }
         }

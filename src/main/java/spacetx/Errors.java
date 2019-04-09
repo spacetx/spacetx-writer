@@ -22,7 +22,8 @@ public enum Errors {
     patternFiles(9, "pattern files must end in '.pattern'"),
     needAction(10, "one of --output, --info, --guess required"),
     unknownFormat(11,"unknown format: %s" ),
-    badOption(12,"bad option: %s" );
+    badOption(12,"bad option: %s" ),
+    badFlag(13,"bad flag: %s" );
 
     public final int rc;
 
