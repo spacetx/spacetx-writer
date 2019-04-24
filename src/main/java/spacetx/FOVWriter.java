@@ -58,9 +58,9 @@ public class FOVWriter {
         ObjectNode primary = mapper.createObjectNode();
         primary.put("default_tile_format", "TIFF");
         // "default_tile_shape" (will be used below)
-        ArrayNode plane = mapper.createArrayNode();
-        plane.add(sizeX);
-        plane.add(sizeY);
+        ObjectNode plane = mapper.createObjectNode();
+        plane.put("x", sizeX);
+        plane.put("y", sizeY);
         // "dimensions"
         ArrayNode dims = mapper.createArrayNode();
         dims.add("r");

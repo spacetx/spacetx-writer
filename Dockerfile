@@ -43,7 +43,7 @@ FROM ${RUN_IMAGE} as run
 COPY --from=build /opt/spacetx-writer/build/distributions/*.tar /tmp
 
 USER root
-RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-writer-0.1.1-SNAPSHOT.tar \
+RUN  tar -C /usr/local --strip-components=1 -xvf /tmp/spacetx-writer-0.1.1.tar \
  &&  rm /tmp/spacetx-writer*tar
 
 RUN useradd -ms /bin/bash spacetx
